@@ -1,7 +1,7 @@
 (defproject cognician/datomic-doc "0.1.0"
   :description "Markdown-based documentation editor for Datomic entities, particularly schema."
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [clojure-future-spec "1.9.0-alpha14"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
+                 ;;[clojure-future-spec "1.9.0-alpha14"]
                  [org.clojure/clojurescript "1.9.293"]
                  [rum "0.10.7"]
                  [com.cognitect/transit-clj "0.8.295"]

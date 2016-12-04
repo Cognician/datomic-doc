@@ -14,7 +14,6 @@
             "POST"
             (some-> body util/write-transit-str)))
 
-
 (rum/defc editor []
   [:div
    [:h2 "Datomic Doc"]])
