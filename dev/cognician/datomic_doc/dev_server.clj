@@ -16,7 +16,7 @@
              (= "/" (:uri req)))
     { :body (slurp (io/resource "cognician/datomic_doc/index.html"))}))
 
-(def api (wrap-provide #'ring/api))
+(def api (wrap-provide #'ring/wrap-datomic-doc))
 
 (defn handler [req]
   (or (index req)

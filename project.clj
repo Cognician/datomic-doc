@@ -1,6 +1,7 @@
 (defproject cognician/datomic-doc "0.1.0"
   :description "Markdown-based documentation editor for Datomic entities, particularly schema."
   :dependencies [[org.clojure/clojure "1.8.0"]
+                 [clojure-future-spec "1.9.0-alpha14"]
                  [org.clojure/clojurescript "1.9.293"]
                  [rum "0.10.7"]
                  [com.cognitect/transit-clj "0.8.295"]
@@ -10,8 +11,9 @@
             [lein-figwheel "0.5.4-7" :exclusions [org.clojure/clojure]]]
   :aliases {"fw" ["figwheel"]}
   :resource-paths ["resources"]
-  :global-vars {*warn-on-reflection* true}
-  :profiles {:dev {:source-paths ["dev"]
+  :global-vars {*warn-on-reflection* false}
+  :profiles {:dev {:dependencies [[proto-repl "0.3.1"]]
+                   :source-paths ["dev"]
                    :resource-paths ["target/js"]}}
   :cljsbuild {:builds [{:id "none"
                         :source-paths ["src" "dev"]

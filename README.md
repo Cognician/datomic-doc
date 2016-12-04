@@ -49,8 +49,8 @@ This enables the full editing UI.
 For example:
 
 ```clojure
-:allow-access-fn (fn [request] 
-                   (contains? (get-in [:session :user :roles]) :admin))
+:allow-write-pred (fn [request] 
+                    (contains? (get-in [:session :user :roles]) :admin))
 ```
 
 
@@ -64,7 +64,7 @@ This renders only the Markdown content with no editing tools.
 For example:
 
 ```clojure
-:allow-access-fn (fn [request] 
+:allow-read-pred (fn [request] 
                    (contains? (get-in [:session :user :roles]) :staff))
 ```
 
@@ -104,7 +104,9 @@ For example:
 
 #### `:uri-prefix` — **OPTIONAL**
 
-A string declaring the initial part of all routes served by Datomic Doc. 
+A string declaring the initial part of all routes served by Datomic Doc.
+
+Can't contain any `"/"` characters.
 
 Default value is `"dd"`.
 
