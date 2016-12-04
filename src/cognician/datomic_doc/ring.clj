@@ -2,12 +2,12 @@
   (:require
     [clojure.spec :as s]
     [clojure.string :as str]
-    [datomic.api :as d]
     [cognician.datomic-doc :as dd]
     [cognician.datomic-doc.transit :as transit]
-    [cognician.datomic-doc.util :as util])
+    [cognician.datomic-doc.util :as util]
+    [datomic.api :as d])
   (:import
-    [java.io InputStream]))
+    java.io.InputStream))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Options parsing
@@ -86,11 +86,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Build context
 
+(s/def ::dd/context
+  (s/keys :req [::dd/conn
+                ::dd/db
+                ::dd/annotate-tx-fn]
+          :opt [::dd/read-only?
+                ::dd/deprecated-attr
+                ::dd/entity
+                ::dd/lookup-type
+                ::dd/lookup-ref]))
+
 (defn build-context [options params]
   (let [conn (d/connect (::dd/datomic-uri options))
         db (d/db conn)]
     (cond-> (-> options
-                (select-keys [::dd/deprecated-attr
+                (select-keys [::dd/read-only?
+                              ::dd/deprecated-attr
                               ::dd/annotate-tx-fn]) 
                 (merge {::dd/conn conn
                         ::dd/db db}))
@@ -110,7 +121,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Request handlers
 
-(defn read-body [^InputStream body]
+(defn read-body [^java.io.InputStream body]
   (when (some? body)
     (.reset body) ;; resets org.httpkit.BytesInputStream to the beginning
     (transit/read-transit body)))
