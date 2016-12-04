@@ -28,7 +28,9 @@ Integration with your web service handler, using sensible "getting started" conf
 
 ### Configuration map options:
 
-**REQUIRED** `:datomic-uri` — A string with a valid Datomic database URI. 
+**REQUIRED** `:datomic-uri` 
+
+A string with a valid Datomic database URI. 
 
 For example:
 
@@ -38,7 +40,11 @@ For example:
 
 
 
-**OPTIONAL** `:allow-write-pred` — A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automaticaly pass the check for `:allow-read-fn` (below). This enables the full editing UI.
+**OPTIONAL** `:allow-write-pred` 
+
+A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automaticaly pass the check for `:allow-read-fn` (below). 
+
+This enables the full editing UI.
 
 For example:
 
@@ -49,7 +55,11 @@ For example:
 
 
 
-**OPTIONAL** `:allow-read-pred` — A function which takes the request and must return `true` if the active user may access the UI, but not alter anything. This renders only the Markdown content with no editing tools. 
+**OPTIONAL** `:allow-read-pred` 
+
+A function which takes the request and must return `true` if the active user may access the UI, but not alter anything.
+
+This renders only the Markdown content with no editing tools. 
 
 For example:
 
@@ -64,7 +74,11 @@ For example:
 
 
 
-**OPTIONAL** `:annotate-tx-fn` — A function which takes the request and a map and must return that map with any attr/value pairs that can be transacted. Typically used to annotate transactions with the enacting user.
+**OPTIONAL** `:annotate-tx-fn` 
+
+A function which takes the request and a map and must return that map with any attr/value pairs that can be transacted. 
+
+Typically used to annotate transactions with the enacting user.
 
 For example:
 
@@ -76,7 +90,11 @@ For example:
 
 
 
-**OPTIONAL** `:deprecated-attr` — A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results (unless optionally included), and cause the editor UI to display a deprecated notice. If not provided, the UI will not provide an option to include deprecated entities. 
+**OPTIONAL** `:deprecated-attr` 
+
+A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results — unless optionally included — and cause the editor UI to display a "Deprecated" notice. 
+
+If not provided, the UI will not provide an option to include deprecated entities. 
 
 For example:
 
@@ -85,9 +103,10 @@ For example:
 ```
 
 
-**OPTIONAL** `:uri-prefix` — A string declaring the initial part of all routes served by Datomic Doc. 
+**OPTIONAL** `:uri-prefix` 
 
-​
+A string declaring the initial part of all routes served by Datomic Doc. 
+
 Default value is `"dd"`.
 
 ------
