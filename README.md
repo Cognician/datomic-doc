@@ -14,7 +14,7 @@ Leiningen coordinates:
 [cognician/datomic-doc "0.1.0"]
 ```
 
-Integration with your web service handler:
+Integration with your web service handler, using sensible "getting started" configuration:
 
 ```clojure
 (require 'cognician.datomic-doc.ring)
@@ -22,55 +22,73 @@ Integration with your web service handler:
 (def handler
   (-> routes
       (cognician.datomic-doc.ring/wrap-datomic-doc 
-       {;; required
-        :datomic-uri "datomic:free://dd"
-        ;; optional
-        :allow-access-fn (fn [request] (contains? (get-in [:session :user :roles]) :admin))
-        :modified-by-user-fn (fn [request] (get-in request [:session :user :email])
-        :deprecated-attr :cognician/deprecated
-        :uri-prefix "datomic-doc"}))
+       {:datomic-uri "datomic:free://dd"
+        :allow-write-fn (constantly true)}))
 ```
 
-Configuration map options:
+### Configuration map options:
 
-- **REQUIRED** `:datomic-uri` — A string with a valid Datomic database URI. 
-  ​
-  For example:
+**REQUIRED** `:datomic-uri` — A string with a valid Datomic database URI. 
 
-  ```clojure
-  :datomic-uri "datomic:free://datomic-doc"
-  ```
+For example:
 
-- **OPTIONAL** `:allow-access-fn` — A function which takes the request and must return `true` if the active user may access the UI. 
-  ​
-  **Important note! If this is not provided, the UI will be available to EVERYONE**.
-  ​
-  For example:
+```clojure
+:datomic-uri "datomic:free://datomic-doc"
+```
 
-  ```clojure
-  :allow-access-fn (fn [request] (contains? (get-in [:session :user :roles]) :admin))
-  ```
 
-- **OPTIONAL** `:modified-by-user-fn` — A function which takes the request and must return a string that represents the active user somehow. If provided, all transactions will be annotated with `:datomic-doc/modified-by` and this value. 
-  ​
-  For example:
 
-  ```clojure
-  :modified-by-user-fn (fn [request] (get-in request [:session :user :email])
-  ```
+**OPTIONAL** `:allow-write-pred` — A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automaticaly pass the check for `:allow-read-fn` (below). This enables the full editing UI.
 
-- **OPTIONAL** `:deprecated-attr` — A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results (unless optionally included), and cause the editor UI to display a deprecated notice. If not provided, the UI will not provide an option to include deprecated entities. 
-  ​
-  For example:
+For example:
 
-  ```clojure
-  :deprecated-attr :cognician/deprecated
-  ```
+```clojure
+:allow-access-fn (fn [request] 
+                   (contains? (get-in [:session :user :roles]) :admin))
+```
 
-- **OPTIONAL** `:uri-prefix` — A string declaring the initial part of all routes served by Datomic Doc. 
 
-  ​
-  Default value is `"dd"`.
+
+**OPTIONAL** `:allow-read-pred` — A function which takes the request and must return `true` if the active user may access the UI, but not alter anything. This renders only the Markdown content with no editing tools. 
+
+For example:
+
+```clojure
+:allow-access-fn (fn [request] 
+                   (contains? (get-in [:session :user :roles]) :staff))
+```
+
+
+
+**Important note! If neither of the `:allow-*-pred` options is provided, the UI will not be available to anyone**.
+
+
+
+**OPTIONAL** `:annotate-tx-fn` — A function which takes the request and a map and must return that map with any attr/value pairs that can be transacted. Typically used to annotate transactions with the enacting user.
+
+For example:
+
+```clojure
+:annotate-tx-fn (fn [request tx-map] 
+                  (assoc tx-map :transaction/altered-by 
+                         [:user/email (get-in [:session :user :email])]))
+```
+
+
+
+**OPTIONAL** `:deprecated-attr` — A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results (unless optionally included), and cause the editor UI to display a deprecated notice. If not provided, the UI will not provide an option to include deprecated entities. 
+
+For example:
+
+```clojure
+:deprecated-attr :cognician/deprecated
+```
+
+
+**OPTIONAL** `:uri-prefix` — A string declaring the initial part of all routes served by Datomic Doc. 
+
+​
+Default value is `"dd"`.
 
 ------
 
