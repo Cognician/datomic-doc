@@ -14,7 +14,9 @@ Typically used to manage doc-strings for schema and enumeration values, but can 
 (def handler
   (-> routes
       (cognician.datomic-doc.ring/wrap-datomic-doc 
-       {:datomic-uri "datomic:free://dd"
+       {;; required
+        :datomic-uri "datomic:free://dd"
+        ;; optional
         :allow-access-fn (fn [request] (contains? (get-in [:session :user :roles]) :admin))
         :modified-by-user-fn (fn [request] (get-in request [:session :user :email])
         :deprecated-attr :cognician/deprecated
