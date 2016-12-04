@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta http-equiv="content-type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Datomic Doc</title>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700,400italic&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+  
+      body { margin: 0; font: 13px/18px "Open Sans"; letter-spacing: 0.2px; }
+      .gallery-card { width: 450px; padding: 20px; display: inline-block; vertical-align: top; }
+      .gallery-header { background: #333; color: white; padding: 5px 5px; }
+      .gallery-header-option { display: inline-block; padding: 2px 5px; margin: 0 5px; cursor: pointer; }
+      .gallery-header-option:hover,
+      .gallery-header-option_selected { background: white; color: #333; }
+    </style>
+    <link href="/cognician/datomic-doc/datomic-doc.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+  <div id=mount></div>
+  <script src="/main.js"></script>
+  <script>
+    cognician.datomic_doc.gallery.refresh();
+  </script>
+</body>
+</html>
