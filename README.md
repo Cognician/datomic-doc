@@ -65,7 +65,7 @@ At `/dd`, a search UI:
 - Enable including deprecated item search with a checkbox.
 - Simply links to permalink system.
 - Examples:
-  - `user` seeks `:user*`, `:user*/*` and `:*/user*` — general case: return union of `(re-find (re-pattern ?input) (namespace attr))` and `(re-find (re-pattern ?input) (name attr))`
+  - `user` seeks `:user*`, `:user*/*` and `:*/user*` — general case: return matches of `(re-find (re-pattern ?input) (str attr))`.
   - `user/` seeks `:user/*` — optimised case: return only  `(= ?input (namespace attr))`.
   - `/email` seeks `:*/email*` — optimised case: return only `(re-find (re-pattern ?input) (name attr))`
 
