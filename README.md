@@ -33,33 +33,44 @@ Integration with your web service handler:
 
 Configuration map options:
 
-- **REQUIRED** `:datomic-uri` — A string with a valid Datomic database URI. For example:
+- **REQUIRED** `:datomic-uri` — A string with a valid Datomic database URI. 
+  ​
+  For example:
 
   ```clojure
   :datomic-uri "datomic:free://datomic-doc"
   ```
 
 - **OPTIONAL** `:allow-access-fn` — A function which takes the request and must return `true` if the active user may access the UI. 
-  Important note!: If this is not provided, the UI will be available to **EVERYONE**.
+  ​
+  **Important note! If this is not provided, the UI will be available to EVERYONE**.
+  ​
   For example:
 
   ```clojure
   :allow-access-fn (fn [request] (contains? (get-in [:session :user :roles]) :admin))
   ```
 
-- **OPTIONAL** `:modified-by-user-fn` — A function which takes the request and must return a string that represents the active user somehow. If provided, all transactions will be annotated with `:datomic-doc/modified-by` and this value. For example:
+- **OPTIONAL** `:modified-by-user-fn` — A function which takes the request and must return a string that represents the active user somehow. If provided, all transactions will be annotated with `:datomic-doc/modified-by` and this value. 
+  ​
+  For example:
 
   ```clojure
   :modified-by-user-fn (fn [request] (get-in request [:session :user :email])
   ```
 
-- **OPTIONAL** `:deprecated-attr` — A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results (unless optionally included), and cause the editor UI to display a deprecated notice. For example:
+- **OPTIONAL** `:deprecated-attr` — A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results (unless optionally included), and cause the editor UI to display a deprecated notice. If not provided, the UI will not provide an option to include deprecated entities. 
+  ​
+  For example:
 
   ```clojure
   :deprecated-attr :cognician/deprecated
   ```
 
-- **OPTIONAL** `:uri-prefix` — A string declaring the initial part of all routes served by Datomic Doc. Default value is `"dd"`.
+- **OPTIONAL** `:uri-prefix` — A string declaring the initial part of all routes served by Datomic Doc. 
+
+  ​
+  Default value is `"dd"`.
 
 ------
 
