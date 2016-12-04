@@ -28,7 +28,7 @@ Integration with your web service handler, using sensible "getting started" conf
 
 ### Configuration map options:
 
-**REQUIRED** `:datomic-uri` 
+`:datomic-uri` **REQUIRED**
 
 A string with a valid Datomic database URI. 
 
@@ -40,7 +40,7 @@ For example:
 
 
 
-**OPTIONAL** `:allow-write-pred` 
+ `:allow-write-pred` **OPTIONAL**
 
 A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automaticaly pass the check for `:allow-read-fn` (below). 
 
@@ -55,7 +55,7 @@ For example:
 
 
 
-**OPTIONAL** `:allow-read-pred` 
+ `:allow-read-pred` **OPTIONAL**
 
 A function which takes the request and must return `true` if the active user may access the UI, but not alter anything.
 
@@ -74,7 +74,7 @@ For example:
 
 
 
-**OPTIONAL** `:annotate-tx-fn` 
+ `:annotate-tx-fn` **OPTIONAL**
 
 A function which takes the request and a map and must return that map with any attr/value pairs that can be transacted. 
 
@@ -90,7 +90,7 @@ For example:
 
 
 
-**OPTIONAL** `:deprecated-attr` 
+ `:deprecated-attr` **OPTIONAL**
 
 A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results — unless optionally included — and cause the editor UI to display a "Deprecated" notice. 
 
@@ -103,7 +103,7 @@ For example:
 ```
 
 
-**OPTIONAL** `:uri-prefix` 
+ `:uri-prefix` **OPTIONAL**
 
 A string declaring the initial part of all routes served by Datomic Doc. 
 
