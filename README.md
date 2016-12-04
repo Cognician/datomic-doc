@@ -61,8 +61,8 @@ Configuration map options:
 
 At `/dd`, a search UI:
 
-- Find all schema and non-schema `:db/ident` entities that do _not_ have `:schema/deprecated true`. 
-- Enabled including deprecated item search with a checkbox.
+- Find all schema and non-schema `:db/ident` entities that do _not_ have `<:deprecated-attr> true`. 
+- Enable including deprecated item search with a checkbox.
 - Simply links to permalink system.
 - Examples:
   - `user` seeks `:user*`, `:user*/*` and `:*/user*` — general case: return union of `(re-find (re-pattern ?input) (namespace attr))` and `(re-find (re-pattern ?input) (name attr))`
