@@ -94,11 +94,21 @@ This requires that the attr be `:db/unique` and that the value be of `:db/valueT
 
  `/dd/entity/tag/value` ⟶ `[:tag "value"]` 
 
- `/dd/entity/user/email` ⟶ `[:user/email "no@spam.thanks"]`
+ `/dd/entity/user/email/no@spam.thanks` ⟶ `[:user/email "no@spam.thanks"]`
 
 ### Editor
 
-Edits the `:db/doc` string of whichever entity is loaded with a Markdown editor, using <https://github.com/tylingsoft/markdown-plus>. 
+Edits the `:db/doc` string of whichever entity is loaded with a Markdown editor, using <https://github.com/tylingsoft/markdown-plus> — online demo: <http://mdp.tylingsoft.com/>. 
+
+#### Notable features include:
+
+- Real-time HTML preview, with scroll lock
+- Clojure syntax highlighting
+- [Github-flavoured markdown](https://help.github.com/articles/github-flavored-markdown/)
+- [Table of contents](http://mdp.tylingsoft.com/#table-of-contents)
+- [Flowcharts](http://mdp.tylingsoft.com/#flowchart)
+- [Sequence diagrams](http://mdp.tylingsoft.com/#sequence-diagram)
+- [Charts](http://mdp.tylingsoft.com/#charts)
 
 ### Type and identity heading
 
