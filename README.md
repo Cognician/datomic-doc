@@ -96,7 +96,45 @@ This requires that the attr be `:db/unique` and that the value be of `:db/valueT
 
  `/dd/entity/user/email/no@spam.thanks` ⟶ `[:user/email "no@spam.thanks"]`
 
-### Editor
+### Type and identity
+
+`Schema: :user/email` 
+
+- The entity has both `:db/ident` and `:db.valueType`.
+- `:db/ident` displayed.
+
+`Enum: :status/active` 
+
+- The entity has `:db/ident` but not `:db.valueType`.
+- `:db/ident` displayed.
+
+`Entity: :user/email "no@spam.thanks"` 
+
+- The entity has no `:db/ident`.
+- The full lookup ref from the route is displayed.
+
+### Metadata
+
+If the entity is schema or an enum value, show extra metadata:
+
+- Schema only:
+  - Type.
+  - Cardinality.
+  - Uniqueness.
+  - Flags:
+    - Indexed (only show if not also Unique).
+    - No History.
+    - Is Component.
+    - Fulltext.
+- Schema and enum values:
+  - Deprecated — if deprecated, colour the UI red or amber somehow.
+  - Stats:
+    - Created timestamp.
+    - Last asserted timestamp and timespan-ago.
+    - Datom count.
+  - A link to search for all other entities sharing this a namespace with this entity; i.e. a search for `<namespace>/`.
+
+### Doc-string Editor
 
 Edits the `:db/doc` string of whichever entity is loaded with a Markdown editor, using <https://github.com/tylingsoft/markdown-plus> — online demo: <http://mdp.tylingsoft.com/>. 
 
@@ -109,56 +147,6 @@ Edits the `:db/doc` string of whichever entity is loaded with a Markdown editor,
 - [Flowcharts](http://mdp.tylingsoft.com/#flowchart)
 - [Sequence diagrams](http://mdp.tylingsoft.com/#sequence-diagram)
 - [Charts](http://mdp.tylingsoft.com/#charts)
-
-### Type and identity heading
-
-#### Type classifier
-
-If the entity is schema — that is, it has both `:db/ident` and `:db.valueType` — display **Schema** prefix.
-
-If the entity is an enumeration value — that is, it has  `:db/ident` but not `:db.valueType — display **Enum** prefix.
-
-Otherwise, display **Entity** prefix.
-
-#### Identity
-
-Display either the `:db/ident` value or the lookup ref attr and value.
-
-#### Examples
-
-- `Schema: :user/email` 
-- `Enum: :status/active`
-- `Entity: :user/email "robert@cognician.com"`
-
-### Schema
-
-When the entity is schema, show metadata:
-
-- Deprecated — if deprecated, colour the UI red or amber somehow.
-- Type.
-- Cardinality.
-- Uniqueness.
-- Flags:
-  - Indexed (only show if not also Unique).
-  - No History.
-  - Is Component.
-  - Fulltext.
-- Stats:
-  - Created timestamp.
-  - Last asserted timestamp and timespan-ago.
-  - Datom count.
-- A link to search for all schema sharing this attribute's namespace; i.e. a search for `<namespace>/`.
-
-### Enum
-
-When the entity is schema, show metadata:
-
-- Deprecated — if deprecated, colour the UI red or amber somehow.
-- Stats:
-  - Created timestamp.
-  - Last asserted timestamp and timespan-ago.
-  - Datom count.
-- A link to search for all enums sharing this enum's namespace; i.e. a search for `<namespace>/`.
 
 ------
 
