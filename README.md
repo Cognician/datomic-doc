@@ -8,6 +8,14 @@ Typically used to manage doc-strings for schema and enumeration values, but can 
 
 ## Installation & configuration
 
+Leiningen coordinates:
+
+```clojure
+[cognician/datomic-doc "0.1.0"]
+```
+
+Integration with your web service handler:
+
 ```clojure
 (require 'cognician.datomic-doc.ring)
 
