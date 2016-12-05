@@ -37,9 +37,6 @@
       (merge (util/conform! ::dd/config options))
       (update ::dd/uri-prefix #(format "/%s/" %))))
 
-#_ (prepare-options {::dd/datomic-uri "datomic:mem://test"
-                     ::dd/allow-write-pred (constantly true)})
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Parse URI
 
@@ -63,27 +60,6 @@
                               :ident  lookup-attr  
                               :entity [lookup-attr value])})))
     ::search))
-
-(comment
-  (parse-entity-uri "/dd")
-  (parse-entity-uri "/dd/")
-  (parse-entity-uri "/dd/ident/foo")
-  (parse-entity-uri "/dd/ident/foo/bar")
-  (parse-entity-uri "/dd/entity/foo/bar")
-  (parse-entity-uri "/dd/entity/foo/bar/baz")
-  _)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Actions
-
-(defn search [context]
-  ["search" context])
-
-(defn editor [context]
-  ["editor" context])
-
-(defn commit! [context payload]
-  ["commit!" context payload])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Build context
@@ -113,11 +89,6 @@
                  lookup-ref)
       flatten-idents))
 
-(comment
-  (pull-entity (d/db (d/connect "datomic:mem://test")) :user/email nil)
-  (pull-entity (d/db (d/connect "datomic:mem://test")) :status/active nil)
-  _)
-
 (defn entity-stats [db {:keys [::dd/lookup-type ::dd/lookup-ref]}]
   {::dd/created      (d/q '[:find (min ?ts) . :in $ ?e :where
                             [?e _ _ ?t true]
@@ -144,35 +115,6 @@
                                     (d/datoms db :vaet lookup-ref)))
                               :entity
                               (seq (d/datoms db :eavt lookup-ref))))})
-
-(comment
-  (d/delete-database "datomic:mem://test")
-  (d/create-database "datomic:mem://test")
-
-  @(d/transact (d/connect "datomic:mem://test") 
-               [{:db/ident :user/email
-                 :db/valueType :db.type/string
-                 :db/cardinality :db.cardinality/one
-                 :db/unique :db.unique/identity}])
-
-  @(d/transact (d/connect "datomic:mem://test") 
-               [{:db/id (d/tempid :db.part/user) :user/email "test@example.com"}])
-
-  (entity-stats (d/db (d/connect "datomic:mem://test"))
-                (parse-entity-uri "/dd/ident/user/email"))
-  
-  @(d/transact (d/connect "datomic:mem://test") 
-               [{:db/ident :user/status
-                 :db/valueType :db.type/ref
-                 :db/cardinality :db.cardinality/one}
-                [:db/add (d/tempid :db.part/user) :db/ident :status/active]])
-
-  @(d/transact (d/connect "datomic:mem://test") 
-               [{:db/id [:user/email "test@example.com"] :user/status :status/active}])
-
-  (entity-stats (d/db (d/connect "datomic:mem://test"))
-                (parse-entity-uri "/dd/ident/status/active"))
-  _)
 
 (s/def ::dd/context
   (s/keys :req [::dd/conn
@@ -201,10 +143,17 @@
                                                 deprecated-attr))
                 (update ::dd/entity merge (entity-stats db params)))))))
 
-#_ (-> (build-context (prepare-options {::dd/datomic-uri "datomic:mem://test"
-                                        ::dd/allow-write-pred (constantly true)})
-                      (parse-entity-uri "/dd/ident/status/active")) 
-       (dissoc ::dd/db))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Actions
+
+(defn search [context]
+  ["search" context])
+
+(defn editor [context]
+  ["editor" context])
+
+(defn commit! [context payload]
+  ["commit!" context payload])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Request handlers
@@ -238,23 +187,46 @@
           {:status  403
            :headers {"Content-Type" "text/plain; charset=utf-8"}
            :body    "Access denied"}))))
-               
-#_ (-> (handler {::options (prepare-options {::dd/datomic-uri "datomic:mem://test"
-                                             ::dd/allow-write-pred (constantly true)})
-                 :uri "/dd/ident/db/doc"
-                 :body (-> "payload"
-                           (.getBytes "UTF-8")
-                           (java.io.ByteArrayInputStream.))
-                 :request-method :get})
-       (update 1 dissoc ::dd/db))
-
-(def dd-api (transit/wrap-transit handler))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Ring Middleware
+
+(def dd-api (transit/wrap-transit handler))
 
 (defn wrap-datomic-doc [handler options]
   (let [options (prepare-options options)]
     (fn [req]
       (or (dd-api (assoc req ::options options))
           (handler req)))))
+
+(comment
+  (def db-uri "datomic:mem://test")
+  (def conn (d/connect db-uri))
+ 
+  (d/delete-database db-uri)
+  (d/create-database db-uri)
+
+  @(d/transact conn
+               [{:db/ident       :user/email
+                 :db/valueType   :db.type/string
+                 :db/cardinality :db.cardinality/one
+                 :db/unique      :db.unique/identity}
+                {:db/ident :user/status
+                 :db/valueType :db.type/ref
+                 :db/cardinality :db.cardinality/one}
+                [:db/add (d/tempid :db.part/user) :db/ident :status/active]])
+
+  @(d/transact conn
+               [{:db/id (d/tempid :db.part/user) 
+                 :user/email "test@example.com"
+                 :user/status :status/active}])
+
+  (-> (handler {::options (prepare-options {::dd/datomic-uri db-uri
+                                            ::dd/allow-write-pred (constantly true)})
+                :uri "/dd/ident/db/doc"
+                :body (-> "payload"
+                          (.getBytes "UTF-8")
+                          (java.io.ByteArrayInputStream.))
+                :request-method :get})
+      (update 1 dissoc ::dd/db))
+  _)
