@@ -6,10 +6,9 @@
                  [rum "0.10.7"]
                  [com.cognitect/transit-clj "0.8.295"]
                  [com.cognitect/transit-cljs "0.8.239"]
-                 [com.datomic/datomic-pro "0.9.5530"]]
+                 [com.datomic/datomic-free "0.9.5530"]]
   :plugins [[lein-cljsbuild "1.1.3" :exclusions [org.clojure/clojure]]
             [lein-figwheel "0.5.4-7" :exclusions [org.clojure/clojure]]]
-  :aliases {"fw" ["figwheel"]}
   :resource-paths ["resources"]
   :global-vars {*warn-on-reflection* false}
   :profiles {:dev {:dependencies [[proto-repl "0.3.1"]]
@@ -24,11 +23,8 @@
                                    :asset-path "/none"
                                    :output-to "target/js/main.js"
                                    :output-dir "target/js/none"
-                                   :optimizations     :none
+                                   :optimizations :none
                                    :source-map-timestamp true}}]}
-  :repositories {"my.datomic.com" {:url "https://my.datomic.com/repo"
-                                   :username "robert@cognician.com"
-                                   :password "e8a515af-c1bb-45b8-acb5-fba4ab6723d6"}}
   :figwheel {:http-server-root "."
              :builds-to-start  ["none"]
              :server-ip "0.0.0.0"

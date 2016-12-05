@@ -2,6 +2,7 @@
   (:require
     [clojure.spec :as s]
     [clojure.string :as str]
+    [clojure.walk :as walk]
     [cognician.datomic-doc :as dd]
     [cognician.datomic-doc.transit :as transit]
     [cognician.datomic-doc.util :as util]
@@ -69,19 +70,20 @@
   (parse-entity-uri "/dd/ident/foo")
   (parse-entity-uri "/dd/ident/foo/bar")
   (parse-entity-uri "/dd/entity/foo/bar")
-  (parse-entity-uri "/dd/entity/foo/bar/baz"))
+  (parse-entity-uri "/dd/entity/foo/bar/baz")
+  _)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
 
 (defn search [context]
-  "search")
+  ["search" context])
 
 (defn editor [context]
-  ["editor" (::dd/entity context)])
+  ["editor" context])
 
 (defn commit! [context payload]
-  ["commit!" (::dd/entity context) payload])
+  ["commit!" context payload])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Build context
@@ -96,8 +98,95 @@
                 ::dd/lookup-type
                 ::dd/lookup-ref]))
 
-(defn build-context [options params]
-  (let [conn (d/connect (::dd/datomic-uri options))
+(def pull-spec
+  [:db/id
+   :db/doc
+   :db/ident
+   {:db/valueType   [:db/ident]}
+   {:db/cardinality [:db/ident]}
+   {:db/unique      [:db/ident]}
+   :db/index
+   :db/noHistory
+   :db/isComponent
+   :db/fulltext])
+
+(defn flatten-idents [m]
+  (walk/postwalk (fn [item]
+                   (if (and (map? item) (:db/ident item) (= 1 (count (keys item))))
+                     (:db/ident item)
+                     item))
+                 m))
+
+(defn pull-entity [db lookup-ref deprecated-attr]
+  (-> (d/pull db (cond-> pull-spec
+                      deprecated-attr (conj deprecated-attr))
+                 lookup-ref)
+      flatten-idents))
+
+(comment
+  (pull-entity (d/db (d/connect "datomic:mem://test")) :user/email nil)
+  (pull-entity (d/db (d/connect "datomic:mem://test")) :status/active nil)
+
+  _)
+
+(defn entity-stats [db {:keys [::dd/lookup-type ::dd/lookup-ref]}]
+  {::dd/created      (d/q '[:find (min ?ts) . :in $ ?e :where
+                            [?e _ _ ?t true]
+                            [?t :db/txInstant ?ts]]
+                          (d/history db) lookup-ref)
+   ::dd/last-changed (case lookup-type
+                       :ident 
+                       (d/q '[:find (max ?ts) . :in $ ?e :where
+                              (or-join [?e ?t] 
+                                [_ ?e _ ?t]
+                                (and [?i :db/ident ?e]
+                                     [_ _ ?i ?t]))
+                              [?t :db/txInstant ?ts]]
+                            db lookup-ref)
+                       :entity 
+                       (d/q '[:find (max ?ts) . :in $ ?e :where
+                              [?e _ _ ?t]
+                              [?t :db/txInstant ?ts]]
+                            db lookup-ref))
+   ::dd/datom-count  (count (case lookup-type
+                              :ident
+                              (seq (concat
+                                    (d/datoms db :aevt lookup-ref)
+                                    (d/datoms db :vaet lookup-ref)))
+                              :entity
+                              (seq (d/datoms db :eavt lookup-ref))))})
+
+(comment
+  (d/delete-database "datomic:mem://test")
+  (d/create-database "datomic:mem://test")
+
+  @(d/transact (d/connect "datomic:mem://test") 
+               [{:db/ident :user/email
+                 :db/valueType :db.type/string
+                 :db/cardinality :db.cardinality/one
+                 :db/unique :db.unique/identity}])
+
+  @(d/transact (d/connect "datomic:mem://test") 
+               [{:db/id (d/tempid :db.part/user) :user/email "test@example.com"}])
+
+  (entity-stats (d/db (d/connect "datomic:mem://test"))
+                (parse-entity-uri "/dd/ident/user/email"))
+  
+  @(d/transact (d/connect "datomic:mem://test") 
+               [{:db/ident :user/status
+                 :db/valueType :db.type/ref
+                 :db/cardinality :db.cardinality/one}
+                [:db/add (d/tempid :db.part/user) :db/ident :status/active]])
+
+  @(d/transact (d/connect "datomic:mem://test") 
+               [{:db/id [:user/email "test@example.com"] :user/status :status/active}])
+
+  (entity-stats (d/db (d/connect "datomic:mem://test"))
+                (parse-entity-uri "/dd/ident/status/active"))
+  _)
+
+(defn build-context [{:keys [::dd/datomic-uri ::dd/deprecated-attr] :as options} params]
+  (let [conn (d/connect datomic-uri)
         db (d/db conn)]
     (cond-> (-> options
                 (select-keys [::dd/read-only?
@@ -107,16 +196,19 @@
                         ::dd/db db}))
       (not= ::search params) 
       (as-> context
-            (-> context 
+            (-> context
                 (merge params)
                 (assoc ::dd/entity 
-                       (d/entity db (::dd/lookup-ref params))))))))
+                       (d/pull db (cond-> pull-spec
+                                    deprecated-attr (conj deprecated-attr))
+                               (::dd/lookup-ref params)))
+                (update ::dd/entity flatten-idents)
+                (update ::dd/entity #(merge % (entity-stats db params))))))))
 
-#_ (d/create-database "datomic:mem://test")
-    
-#_ (build-context (prepare-options {::dd/datomic-uri "datomic:mem://test"
-                                    ::dd/allow-write-pred (constantly true)})
-                  (parse-entity-uri "/dd/ident/db/doc"))
+#_ (-> (build-context (prepare-options {::dd/datomic-uri "datomic:mem://test"
+                                        ::dd/allow-write-pred (constantly true)})
+                      (parse-entity-uri "/dd/ident/status/active")) 
+       (dissoc ::dd/db))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Request handlers
@@ -151,13 +243,14 @@
            :headers {"Content-Type" "text/plain; charset=utf-8"}
            :body    "Access denied"}))))
                
-#_ (handler {::options (prepare-options {::dd/datomic-uri "datomic:mem://test"
-                                         ::dd/allow-write-pred (constantly true)})
-             :uri "/dd/ident/db/doc"
-             :body (-> "payload"
-                       (.getBytes "UTF-8")
-                       (java.io.ByteArrayInputStream.))
-             :request-method :post})
+#_ (-> (handler {::options (prepare-options {::dd/datomic-uri "datomic:mem://test"
+                                             ::dd/allow-write-pred (constantly true)})
+                 :uri "/dd/ident/db/doc"
+                 :body (-> "payload"
+                           (.getBytes "UTF-8")
+                           (java.io.ByteArrayInputStream.))
+                 :request-method :get})
+       (update 1 dissoc ::dd/db))
 
 (def dd-api (transit/wrap-transit handler))
 
