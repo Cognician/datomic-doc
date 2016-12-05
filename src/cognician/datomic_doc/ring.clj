@@ -207,10 +207,10 @@
   (d/create-database db-uri)
 
   @(d/transact conn
-               [{:db/ident       :user/email
-                 :db/valueType   :db.type/string
+               [{:db/ident :user/email
+                 :db/valueType :db.type/string
                  :db/cardinality :db.cardinality/one
-                 :db/unique      :db.unique/identity}
+                 :db/unique :db.unique/identity}
                 {:db/ident :user/status
                  :db/valueType :db.type/ref
                  :db/cardinality :db.cardinality/one}
