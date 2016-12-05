@@ -3,6 +3,7 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
                  ;;[clojure-future-spec "1.9.0-alpha14"]
                  [org.clojure/clojurescript "1.9.293"]
+                 [http-kit "2.2.0"]
                  [rum "0.10.7"]
                  [com.cognitect/transit-clj "0.8.295"]
                  [com.cognitect/transit-cljs "0.8.239"]
@@ -11,7 +12,9 @@
             [lein-figwheel "0.5.4-7" :exclusions [org.clojure/clojure]]]
   :resource-paths ["resources"]
   :global-vars {*warn-on-reflection* false}
-  :profiles {:dev {:dependencies [[proto-repl "0.3.1"]]
+  :profiles {:dev {:dependencies [[proto-repl "0.3.1"]
+                                  [ring/ring-core "1.5.0"]
+                                  [http-kit "2.2.0"]]
                    :source-paths ["dev"]
                    :resource-paths ["target/js"]}}
   :cljsbuild {:builds [{:id "none"
@@ -29,6 +32,4 @@
              :builds-to-start  ["none"]
              :server-ip "0.0.0.0"
              :server-port 4000
-             :ring-handler "cognician.datomic-doc.dev-server/handler"
-             :css-dirs ["resources/cognician/datomic-doc"]
              :repl false})

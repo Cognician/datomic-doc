@@ -34,9 +34,13 @@
      (t/write (t/writer :json) o)))
 
 #?(:clj
+   (defn transit-response [response]
+     (some-> response
+       (update :headers assoc 
+               "Content-Type" "application/transit+json; charset=utf-8")
+       (update :body write-transit-str))))
+
+#?(:clj
    (defn wrap-transit [handler]
      (fn [request]
-       (some-> (handler request)
-         (update :headers assoc 
-                 "Content-Type" "application/transit+json; charset=utf-8")
-         (update :body write-transit-str)))))
+       (some-> (handler request) transit-response))))

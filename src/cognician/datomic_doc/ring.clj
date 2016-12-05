@@ -35,7 +35,7 @@
 (defn prepare-options [options]
   (-> default-options
       (merge (util/conform! ::dd/config options))
-      (update ::dd/uri-prefix #(format "/%s/" %))))
+      (update ::dd/uri-prefix #(str "/" %))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Parse URI
@@ -147,13 +147,19 @@
 ;;; Actions
 
 (defn search [context]
-  ["search" context])
+  {:status  200
+   :headers {"Content-Type" "text/html; charset=utf-8"}
+   :body    (str "search: " (pr-str context))})
 
 (defn editor [context]
-  ["editor" context])
+  {:status  200
+   :headers {"Content-Type" "text/html; charset=utf-8"}
+   :body    (str "editor: " (pr-str context))})
 
 (defn commit! [context payload]
-  ["commit!" context payload])
+  {:status  200
+   :headers {"Content-Type" "text/html; charset=utf-8"}
+   :body    (str "commit!: " (pr-str context) (pr-str payload))})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Request handlers
@@ -163,7 +169,7 @@
     (.reset body) ;; resets org.httpkit.BytesInputStream to the beginning
     (transit/read-transit body)))
 
-(defn handler [{:keys [request-method uri body ::options] :as req}]
+(defn dd-handler [{:keys [request-method uri body ::options] :as req}]
   (let [{:keys [::dd/uri-prefix
                 ::dd/allow-read-pred
                 ::dd/allow-write-pred]} options]
@@ -191,21 +197,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Ring Middleware
 
-(def dd-api (transit/wrap-transit handler))
-
 (defn wrap-datomic-doc [handler options]
   (let [options (prepare-options options)]
     (fn [req]
-      (or (dd-api (assoc req ::options options))
+      (or (dd-handler (assoc req ::options options))
           (handler req)))))
 
 (comment
   (def db-uri "datomic:mem://test")
-  (def conn (d/connect db-uri))
- 
+  
   (d/delete-database db-uri)
   (d/create-database db-uri)
 
+  (def conn (d/connect db-uri))
+ 
   @(d/transact conn
                [{:db/ident :user/email
                  :db/valueType :db.type/string
