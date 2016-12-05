@@ -88,16 +88,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Build context
 
-(s/def ::dd/context
-  (s/keys :req [::dd/conn
-                ::dd/db
-                ::dd/annotate-tx-fn]
-          :opt [::dd/read-only?
-                ::dd/deprecated-attr
-                ::dd/entity
-                ::dd/lookup-type
-                ::dd/lookup-ref]))
-
 (def pull-spec
   [:db/id
    :db/doc
@@ -119,14 +109,13 @@
 
 (defn pull-entity [db lookup-ref deprecated-attr]
   (-> (d/pull db (cond-> pull-spec
-                      deprecated-attr (conj deprecated-attr))
+                   deprecated-attr (conj deprecated-attr))
                  lookup-ref)
       flatten-idents))
 
 (comment
   (pull-entity (d/db (d/connect "datomic:mem://test")) :user/email nil)
   (pull-entity (d/db (d/connect "datomic:mem://test")) :status/active nil)
-
   _)
 
 (defn entity-stats [db {:keys [::dd/lookup-type ::dd/lookup-ref]}]
@@ -185,6 +174,16 @@
                 (parse-entity-uri "/dd/ident/status/active"))
   _)
 
+(s/def ::dd/context
+  (s/keys :req [::dd/conn
+                ::dd/db
+                ::dd/annotate-tx-fn]
+          :opt [::dd/read-only?
+                ::dd/deprecated-attr
+                ::dd/entity
+                ::dd/lookup-type
+                ::dd/lookup-ref]))
+
 (defn build-context [{:keys [::dd/datomic-uri ::dd/deprecated-attr] :as options} params]
   (let [conn (d/connect datomic-uri)
         db (d/db conn)]
@@ -198,12 +197,9 @@
       (as-> context
             (-> context
                 (merge params)
-                (assoc ::dd/entity 
-                       (d/pull db (cond-> pull-spec
-                                    deprecated-attr (conj deprecated-attr))
-                               (::dd/lookup-ref params)))
-                (update ::dd/entity flatten-idents)
-                (update ::dd/entity #(merge % (entity-stats db params))))))))
+                (assoc ::dd/entity (pull-entity db (::dd/lookup-ref params) 
+                                                deprecated-attr))
+                (update ::dd/entity merge (entity-stats db params)))))))
 
 #_ (-> (build-context (prepare-options {::dd/datomic-uri "datomic:mem://test"
                                         ::dd/allow-write-pred (constantly true)})
