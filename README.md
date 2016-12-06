@@ -17,45 +17,46 @@ Leiningen coordinates:
 Integration with your web service handler, using sensible "getting started" configuration:
 
 ```clojure
-(require 'cognician.datomic-doc.ring)
+(require '[cognician.datomic-doc :as dd] 
+         '[cognician.datomic-doc.ring :as ddr])
 
 (def handler
   (-> routes
-      (cognician.datomic-doc.ring/wrap-datomic-doc 
-       {:datomic-uri "datomic:free://dd"
-        :allow-write-fn (constantly true)}))
+      (ddr/wrap-datomic-doc 
+       {::dd/datomic-uri "datomic:free://dd"
+        ::dd/allow-write-fn (constantly true)}))
 ```
 
 ### Configuration map options:
 
-#### `:datomic-uri` — **REQUIRED**
+#### `::dd/datomic-uri` — **REQUIRED**
 
 A string with a valid Datomic database URI. 
 
 For example:
 
 ```clojure
-:datomic-uri "datomic:free://datomic-doc"
+::dd/datomic-uri "datomic:free://datomic-doc"
 ```
 
 
 
-#### `:allow-write-pred` — **OPTIONAL**
+#### `::dd/allow-write-pred` — **OPTIONAL**
 
-A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automaticaly pass the check for `:allow-read-fn` (below). 
+A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automaticaly pass the check for `::dd/allow-read-fn` (below). 
 
 This enables the full editing UI.
 
 For example:
 
 ```clojure
-:allow-write-pred (fn [request] 
-                    (contains? (get-in [:session :user :roles]) :admin))
+::dd/allow-write-pred (fn [request] 
+                        (contains? (get-in [:session :user :roles]) :admin))
 ```
 
 
 
-#### `:allow-read-pred` — **OPTIONAL**
+#### `::dd/allow-read-pred` — **OPTIONAL**
 
 A function which takes the request and must return `true` if the active user may access the UI, but not alter anything.
 
@@ -64,17 +65,17 @@ This renders only the Markdown content with no editing tools.
 For example:
 
 ```clojure
-:allow-read-pred (fn [request] 
-                   (contains? (get-in [:session :user :roles]) :staff))
+::dd/allow-read-pred (fn [request] 
+                       (contains? (get-in [:session :user :roles]) :staff))
 ```
 
 
 
-**Important note! If neither of the `:allow-*-pred` options is provided, the UI will not be available to anyone**.
+**Important note! If neither of the `::dd/allow-*-pred` options is provided, the UI will not be available to anyone**.
 
 
 
-#### `:annotate-tx-fn` — **OPTIONAL**
+#### `::dd/annotate-tx-fn` — **OPTIONAL**
 
 A function which takes the request and a map and must return that map with any attr/value pairs that can be transacted. 
 
@@ -83,14 +84,14 @@ Typically used to annotate transactions with the enacting user.
 For example:
 
 ```clojure
-:annotate-tx-fn (fn [request tx-map] 
-                  (assoc tx-map :transaction/altered-by 
-                         [:user/email (get-in [:session :user :email])]))
+::dd/annotate-tx-fn (fn [request tx-map] 
+                      (assoc tx-map :transaction/altered-by 
+                             [:user/email (get-in [:session :user :email])]))
 ```
 
 
 
-#### `:deprecated-attr` — **OPTIONAL**
+#### `::dd/deprecated-attr` — **OPTIONAL**
 
 A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results — unless optionally included — and cause the editor UI to display a "Deprecated" notice. 
 
@@ -99,10 +100,10 @@ If not provided, the UI will not provide an option to include deprecated entitie
 For example:
 
 ```clojure
-:deprecated-attr :cognician/deprecated
+::dd/deprecated-attr :cognician/deprecated
 ```
 
-#### `:uri-prefix` — **OPTIONAL**
+#### `::dd/uri-prefix` — **OPTIONAL**
 
 A string declaring the initial part of all routes served by Datomic Doc.
 
@@ -153,7 +154,7 @@ This requires that the attr be `:db/unique` and that the value be of `:db/valueT
 
  `/dd/entity/user/email/no@spam.thanks` ⟶ `[:user/email "no@spam.thanks"]`
 
-### Type and identity
+### Type and identity heading
 
 `Schema: :user/email` 
 
@@ -209,6 +210,6 @@ Edits the `:db/doc` string of whichever entity is loaded with a Markdown editor,
 
 ## What Datomic Doc is NOT
 
-It is not a schema editor. It only manages `:db/doc` values, and its own `:datomic-doc/deprecated`
+It is not a schema editor. It only manages `:db/doc` values, and its own `::dd/deprecated`
 
 Use your REPL to add or modify schema and/or enums as per usual.

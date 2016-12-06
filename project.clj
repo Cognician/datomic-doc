@@ -4,6 +4,7 @@
                  ;;[clojure-future-spec "1.9.0-alpha14"]
                  [org.clojure/clojurescript "1.9.293"]
                  [http-kit "2.2.0"]
+                 [bidi "2.0.14"]
                  [rum "0.10.7"]
                  [com.cognitect/transit-clj "0.8.295"]
                  [com.cognitect/transit-cljs "0.8.239"]
