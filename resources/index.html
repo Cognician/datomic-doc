@@ -5,22 +5,18 @@
     <meta http-equiv="content-type" content="text/html;charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>Datomic Doc</title>
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700,400italic&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
-    <style>
-      * { box-sizing: border-box; }
-      html, body { min-height: 100%; }
-  
-      body { margin: 0; font: 13px/18px "Open Sans"; letter-spacing: 0.2px; }
-      .gallery-card { width: 450px; padding: 20px; display: inline-block; vertical-align: top; }
-      .gallery-header { background: #333; color: white; padding: 5px 5px; }
-      .gallery-header-option { display: inline-block; padding: 2px 5px; margin: 0 5px; cursor: pointer; }
-      .gallery-header-option:hover,
-      .gallery-header-option_selected { background: white; color: #333; }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.2.1/css/bulma.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
     <link href="/cognician/datomic-doc/datomic-doc.css" rel="stylesheet" type="text/css">
 </head>
 <body>
-  <div id=mount></div>
+  <div data-component="search">
+    <script type="application/edn">
+      {:options {:cognician.datomic-doc/uri-prefix "/dd"}
+       :db {:schema {:db/ident {:db/unique :db.unique/identity}}
+            :datoms []}}
+    </script>
+  </div>
   <script src="/main.js"></script>
   <script>
     cognician.datomic_doc.gallery.refresh();

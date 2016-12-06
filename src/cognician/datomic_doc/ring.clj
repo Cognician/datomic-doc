@@ -118,7 +118,8 @@
                 (let [conn (d/connect (::dd/datomic-uri options))]
                   {:conn    conn
                    :db      (d/db conn)
-                   :options (select-keys options [::dd/deprecated-attr
+                   :options (select-keys options [::dd/uri-prefix
+                                                  ::dd/deprecated-attr
                                                   ::dd/annotate-tx-fn])}))
         handler)))
 
@@ -132,32 +133,30 @@
                         :ident  lookup-attr
                         :entity [lookup-attr value])
           db          (get-in request [::dd/context :db])
-          entity      (pull-entity db lookup-ref (::dd/deprecated-attr options))]
-      (if (= entity {:db/id nil})
+          entity-map  (pull-entity db lookup-ref (::dd/deprecated-attr options))]
+      (if (= entity-map {:db/id nil})
         (response/not-found "That entity does not exist.")
         (-> (update request ::dd/context merge
                     {:lookup-type  lookup-type
                      :lookup-ref   lookup-ref
-                     :entity       entity
+                     :entity       entity-map
                      :entity-stats (entity-stats db lookup-type lookup-ref)})
             handler)))))
 
 (defn make-routes [uri-prefix options]
   [uri-prefix
    {:get {"" search
-          #{["/" [#"ident" :lookup-type] "/" :ns "/" :name]
-            ["/" [#"ident" :lookup-type] "/" :name]
+          #{["/" [#"ident"  :lookup-type] "/" :ns "/" :name]
+            ["/" [#"ident"  :lookup-type]         "/" :name]
             ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" :value]
-            ["/" [#"entity" :lookup-type] "/" :name "/" :value]}
+            ["/" [#"entity" :lookup-type]         "/" :name "/" :value]}
           (bidi-ring/wrap-middleware editor (partial wrap-with-entity options))}}])
 
 (defn wrap-datomic-doc [handler options]
   (let [options (prepare-options options)
-
         {:keys [::dd/uri-prefix
                 ::dd/allow-read-pred
                 ::dd/allow-write-pred]} options
-
         dd-handler (wrap-with-context options
                                       (-> uri-prefix
                                           (make-routes options)

@@ -1,10 +1,16 @@
 (ns user
   (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojure.tools.namespace.repl :refer [refresh]]
             [cognician.datomic-doc :as dd]
             [cognician.datomic-doc.ring :as ring]
+            [datomic.api :as d]
             [org.httpkit.server :as http]
             [ring.middleware.resource :as resource]))
+
+(def db-uri "datomic:free://localhost:4334/cognician")
+(def conn (partial d/connect db-uri))
+(def db (comp d/db conn))
 
 (defn index [req]
   (when (and (= :get (:request-method req))
@@ -14,7 +20,7 @@
 (def handler
   (-> index
       (ring/wrap-datomic-doc 
-       {::dd/datomic-uri "datomic:free://localhost:4334/cognician"
+       {::dd/datomic-uri db-uri
         ::dd/allow-write-pred (constantly true)})
       (resource/wrap-resource ".")))
 
@@ -31,3 +37,19 @@
 (defn reset []
   (stop-web)
   (refresh :after 'user/start-web))
+
+(comment
+  (d/attribute (db) :db/ident)
+  
+  (defn datomic-schema? [attr]
+    (let [ns (str (namespace attr))]
+      (or (string/starts-with? ns "db")
+          (string/starts-with? ns "fressian"))))
+  
+  (spit "db.edn"
+   (pr-str {:schema {:db/ident {}}
+            :datoms (into [] (comp (remove (comp datomic-schema? (partial d/ident (db)) :v))
+                                   (map (fn [[e _ v]] [e :db/ident v])))
+                          (d/datoms (db) :aevt :db/ident))}))
+  
+  (db/datascript-db (d/db (d/connect db-uri))))
