@@ -1,15 +1,14 @@
 (ns cognician.datomic-doc.ring
   (:require
-    [bidi.bidi :as bidi]
-    [bidi.ring :as bidi-ring]
-    [clojure.pprint :as pprint]
-    [clojure.spec :as s]
-    [clojure.string :as str]
-    [cognician.datomic-doc :as dd]
-    [cognician.datomic-doc.transit :as transit]
-    [cognician.datomic-doc.util :as util]
-    [datomic.api :as d]
-    [ring.util.response :as response]))
+   [bidi.ring :as bidi-ring]
+   [clojure.pprint :as pprint]
+   [clojure.spec :as s]
+   [clojure.string :as str]
+   [cognician.datomic-doc :as dd]
+   [cognician.datomic-doc.transit :as transit]
+   [cognician.datomic-doc.util :as util]
+   [datomic.api :as d]
+   [ring.util.response :as response]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Options
@@ -45,9 +44,9 @@
   [:db/id
    :db/doc
    :db/ident
-   {:db/valueType   [:db/ident]}
+   {:db/valueType [:db/ident]}
    {:db/cardinality [:db/ident]}
-   {:db/unique      [:db/ident]}
+   {:db/unique [:db/ident]}
    :db/index
    :db/noHistory
    :db/isComponent
@@ -56,7 +55,7 @@
 (defn pull-entity [db lookup-ref deprecated-attr]
   (-> (d/pull db (cond-> pull-spec
                    deprecated-attr (conj deprecated-attr))
-                 lookup-ref)
+              lookup-ref)
       util/flatten-idents))
 
 (defn entity-stats [db lookup-type lookup-ref]
@@ -65,15 +64,15 @@
                         [?t :db/txInstant ?ts]]
                       (d/history db) lookup-ref)
    :last-changed (case lookup-type
-                   :ident 
+                   :ident
                    (d/q '[:find (max ?ts) . :in $ ?e :where
-                          (or-join [?e ?t] 
+                          (or-join [?e ?t]
                             [_ ?e _ ?t]
                             (and [?i :db/ident ?e]
                                  [_ _ ?i ?t]))
                           [?t :db/txInstant ?ts]]
                         db lookup-ref)
-                   :entity 
+                   :entity
                    (d/q '[:find (max ?ts) . :in $ ?e :where
                           [?e _ _ ?t]
                           [?t :db/txInstant ?ts]]
@@ -89,26 +88,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
 
-(defn pprint-str [val]
-  (with-out-str (pprint/pprint val)))
+(defn pprint-pre [val]
+  (format "<pre style='white-space: pre-wrap;'>%s</pre>"
+          (with-out-str (pprint/pprint val))))
 
 (defn search [request]
   {:status  200
    :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body    (str "search:<br><pre style='white-space: pre-wrap;'>" (pprint-str (::dd/context request)) "</pre>")})
+   :body    (str "search:<br>" (pprint-pre (::dd/context request)))})
 
 (defn editor [request]
   {:status  200
    :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body    (str "search:<br><pre style='white-space: pre-wrap;'>" (pprint-str (::dd/context request)) "</pre>")})
+   :body    (str "editor:<br>" (pprint-pre (::dd/context request)))})
 
 (defn commit! [request]
   {:status  200
    :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body    (str "search:<br><pre style='white-space: pre-wrap;'>" 
-                 (pprint-str (::dd/context request)) 
-                 (pprint-str (transit/read-transit-body (:body request))) 
-                 "</pre>")})
+   :body    (str "commit!:<br>"
+                 (pprint-pre (::dd/context request))
+                 (pprint-pre (transit/read-transit-body (:body request))))})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Ring Middleware
@@ -117,30 +116,29 @@
   (fn [request]
     (-> (update request ::dd/context merge
                 (let [conn (d/connect (::dd/datomic-uri options))]
-                  {:conn conn
-                   :db (d/db conn)
-                   :options (select-keys options [::dd/deprecated-attr 
+                  {:conn    conn
+                   :db      (d/db conn)
+                   :options (select-keys options [::dd/deprecated-attr
                                                   ::dd/annotate-tx-fn])}))
         handler)))
 
 (defn wrap-with-entity [options handler]
-  (fn [request]
-    (let [{:keys [lookup-type ns name value]} (:route-params request)
-          lookup-type (keyword lookup-type)
+  (fn [{{:keys [lookup-type ns name value]} :route-params :as request}]
+    (let [lookup-type (keyword lookup-type)
           lookup-attr (if ns
                         (keyword ns name)
                         (keyword name))
-          lookup-ref (case lookup-type
-                       :ident  lookup-attr  
-                       :entity [lookup-attr value])
-          db (get-in request [::dd/context :db])
-          entity (pull-entity db lookup-ref (::dd/deprecated-attr options))]
+          lookup-ref  (case lookup-type
+                        :ident  lookup-attr
+                        :entity [lookup-attr value])
+          db          (get-in request [::dd/context :db])
+          entity      (pull-entity db lookup-ref (::dd/deprecated-attr options))]
       (if (= entity {:db/id nil})
         (response/not-found "That entity does not exist.")
-        (-> (update request ::dd/context merge 
-                    {:lookup-type lookup-type
-                     :lookup-ref lookup-ref
-                     :entity entity
+        (-> (update request ::dd/context merge
+                    {:lookup-type  lookup-type
+                     :lookup-ref   lookup-ref
+                     :entity       entity
                      :entity-stats (entity-stats db lookup-type lookup-ref)})
             handler)))))
 
@@ -150,14 +148,16 @@
           #{["/" [#"ident" :lookup-type] "/" :ns "/" :name]
             ["/" [#"ident" :lookup-type] "/" :name]
             ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" :value]
-            ["/" [#"entity" :lookup-type] "/" :name "/" :value]} 
+            ["/" [#"entity" :lookup-type] "/" :name "/" :value]}
           (bidi-ring/wrap-middleware editor (partial wrap-with-entity options))}}])
 
 (defn wrap-datomic-doc [handler options]
   (let [options (prepare-options options)
+
         {:keys [::dd/uri-prefix
                 ::dd/allow-read-pred
                 ::dd/allow-write-pred]} options
+
         dd-handler (wrap-with-context options
                                       (-> uri-prefix
                                           (make-routes options)
@@ -166,53 +166,9 @@
       (or (when (str/starts-with? (:uri request) uri-prefix)
             (if (or (allow-write-pred request)
                     (allow-read-pred request))
-              (dd-handler (assoc request ::dd/context 
+              (dd-handler (assoc request ::dd/context
                                  {:read-only? (not (allow-write-pred request))}))
               {:status  403
                :headers {"Content-Type" "text/plain; charset=utf-8"}
                :body    "Access denied"}))
           (handler request)))))
-
-(comment
-  (def db-uri "datomic:mem://test")
-  
-  (d/delete-database db-uri)
-  (d/create-database db-uri)
-
-  (def conn (d/connect db-uri))
- 
-  @(d/transact conn
-               [{:db/ident :user/email
-                 :db/valueType :db.type/string
-                 :db/cardinality :db.cardinality/one
-                 :db/unique :db.unique/identity}
-                {:db/ident :user/status
-                 :db/valueType :db.type/ref
-                 :db/cardinality :db.cardinality/one}
-                [:db/add (d/tempid :db.part/user) :db/ident :status/active]])
-
-  @(d/transact conn
-               [{:db/id (d/tempid :db.part/user) 
-                 :user/email "test@example.com"
-                 :user/status :status/active}])
-  _)
-
-(comment
-  (def uri-prefix "dd")
-  (def routes [(str "/" uri-prefix) 
-               {:get {"" 
-                      search
-                      
-                      #{["/" [#"ident" :lookup-type] "/" :ns "/" :name]
-                        ["/" [#"ident" :lookup-type] "/" :name]
-                        ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" :value]
-                        ["/" [#"entity" :lookup-type] "/" :name "/" :value]} 
-                      editor}}])
-
-  (bidi/match-route routes "/dd" :request-method :get)
-  (bidi/match-route routes "/dd/ident/foo/bar" :request-method :get)
-  (bidi/match-route routes "/dd/ident/foo" :request-method :get)
-  (bidi/match-route routes "/dd/entity/foo/bar/val" :request-method :get)
-  (bidi/match-route routes "/dd/entity/foo/val" :request-method :get)
-  
-  _)
