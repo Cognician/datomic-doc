@@ -1,9 +1,10 @@
 (ns cognician.datomic-doc.ring
   (:require
    [bidi.ring :as bidi-ring]
+   [clojure.java.io :as io]
    [clojure.pprint :as pprint]
    [clojure.spec :as s]
-   [clojure.string :as str]
+   [clojure.string :as string]
    [cognician.datomic-doc :as dd]
    [cognician.datomic-doc.transit :as transit]
    [cognician.datomic-doc.util :as util]
@@ -92,15 +93,44 @@
   (format "<pre style='white-space: pre-wrap;'>%s</pre>"
           (with-out-str (pprint/pprint val))))
 
-(defn search [request]
-  {:status  200
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body    (str "search:<br>" (pprint-pre (::dd/context request)))})
+(defn layout [content]
+  (-> "index.html"
+      io/resource
+      slurp
+      (string/replace "#content#" content)
+      response/response))
 
-(defn editor [request]
-  {:status  200
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body    (str "editor:<br>" (pprint-pre (::dd/context request)))})
+(defn client-component [name data]
+  (format "<div data-component=\"%s\"><script type=\"application/edn\">%s</script></div>" 
+          name data))
+
+(defn client-options [context]
+  (select-keys context [::dd/uri-prefix]))
+
+(defn datomic-schema? [attr]
+  (let [ns (str (namespace attr))]
+    (or (string/starts-with? ns "db")
+        (string/starts-with? ns "fressian"))))
+
+(defn all-idents-as-datoms [db]
+  (into [] (comp (remove (comp datomic-schema? :v))
+                 (map (fn [[e _ v]] [e :db/ident v])))
+        (d/datoms db :aevt :db/ident)))
+
+(defn search [{:keys [::dd/context] :as request}]
+  (layout 
+   (client-component 
+    "search"
+    {:options (-> context :options client-options)
+     :db {:schema {:db/ident {:db/unique :db.unique/identity}}
+          :datoms (all-idents-as-datoms (:db context))}})))
+
+(defn editor [{:keys [::dd/context] :as request}]
+  (layout 
+   (client-component 
+    "editor"
+    (merge {:options (-> context :options client-options)}
+           (select-keys context [:lookup-type :lookup-ref :entity :entity-stats])))))
 
 (defn commit! [request]
   {:status  200
@@ -162,7 +192,7 @@
                                           (make-routes options)
                                           bidi-ring/make-handler))]
     (fn [request]
-      (or (when (str/starts-with? (:uri request) uri-prefix)
+      (or (when (string/starts-with? (:uri request) uri-prefix)
             (if (or (allow-write-pred request)
                     (allow-read-pred request))
               (dd-handler (assoc request ::dd/context

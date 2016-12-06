@@ -48,8 +48,8 @@
   
   (spit "db.edn"
    (pr-str {:schema {:db/ident {}}
-            :datoms (into [] (comp (remove (comp datomic-schema? (partial d/ident (db)) :v))
+            :datoms (into [] (comp (remove (comp datomic-schema? :v))
                                    (map (fn [[e _ v]] [e :db/ident v])))
                           (d/datoms (db) :aevt :db/ident))}))
-  
+  (take 10 (seq (d/datoms (db) :aevt :db/ident)))
   (db/datascript-db (d/db (d/connect db-uri))))

@@ -6,7 +6,7 @@
 
 (enable-console-print!)
 
-(def key->label (comp string/capitalize name))
+(def kw->label (comp string/capitalize name))
 
 (defn go-to-url [url]
   (when url

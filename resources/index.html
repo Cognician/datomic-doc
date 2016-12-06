@@ -10,16 +10,7 @@
     <link href="/cognician/datomic-doc/datomic-doc.css" rel="stylesheet" type="text/css">
 </head>
 <body>
-  <div data-component="search">
-    <script type="application/edn">
-      {:options {:cognician.datomic-doc/uri-prefix "/dd"}
-       :db {:schema {:db/ident {:db/unique :db.unique/identity}}
-            :datoms []}}
-    </script>
-  </div>
+  #content#
   <script src="/main.js"></script>
-  <script>
-    cognician.datomic_doc.gallery.refresh();
-  </script>
 </body>
 </html>

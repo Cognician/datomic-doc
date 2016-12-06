@@ -56,21 +56,30 @@
       [:hr]
 
       (when query
-        (for [[namespace ident-entities] (->> (search-idents db query)
-                                              (group-by (comp namespace :db/ident))
-                                              (sort-by first))
-              :let [namespace-label (when (nil? namespace) "(no namespace)")]]
-          [:div {:key (or namespace namespace-label)}
-           [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
-           [:ul
-            (for [ident-entity (sort-by (comp name :db/ident) ident-entities)
-                  :let [name (-> ident-entity :db/ident name)]]
-              [:li
-               [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
-                               "/ident" 
-                               (when-not (nil? namespace)
-                                 (str "/" namespace)) 
-                               "/" name)}
-                ":" (when namespace (str namespace "/")) name]])]
-           [:hr]]))]]))
+        
+        (let [results (search-idents db query)
+              result-count (count results)
+              results (->> results
+                           (group-by (comp namespace :db/ident))
+                           (sort-by first)
+                           doall)]
+         
+         (list
+          [:.box result-count " items found."]
+         
+          (for [[namespace ident-entities] results
+                :let [namespace-label (when (nil? namespace) "(no namespace)")]]
+            [:div {:key (or namespace namespace-label)}
+             [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
+             [:ul
+              (for [ident-entity (sort-by (comp name :db/ident) ident-entities)
+                    :let [name (-> ident-entity :db/ident name)]]
+                [:li
+                 [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
+                                 "/ident" 
+                                 (when-not (nil? namespace)
+                                   (str "/" namespace)) 
+                                 "/" name)}
+                  ":" (when namespace (str namespace "/")) name]])]
+             [:hr]]))))]]))
               
