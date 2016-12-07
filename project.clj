@@ -17,7 +17,8 @@
   :resource-paths ["resources"]
   :global-vars {*warn-on-reflection* false}
   :profiles {:dev {:dependencies [[proto-repl "0.3.1"]
-                                  [http-kit "2.2.0"]]
+                                  [http-kit "2.2.0"]
+                                  [com.taoensso/tufte "1.0.2"]]
                    :source-paths ["dev"]
                    :resource-paths ["target/js"]}}
   :cljsbuild {:builds [{:id "none"

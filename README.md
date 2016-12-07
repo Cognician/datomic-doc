@@ -157,13 +157,9 @@ This requires that the attr be `:db/unique` and that the value be of `:db/valueT
 ### Type and identity heading
 
 `Schema: :user/email` 
-
-- The entity has both `:db/ident` and `:db.valueType`.
-- `:db/ident` displayed.
-
 `Enum: :status/active` 
-
-- The entity has `:db/ident` but not `:db.valueType`.
+`Database function: :find-or-create-tag` 
+`Database partition: :cognician` 
 - `:db/ident` displayed.
 
 `Entity: :user/email "no@spam.thanks"` 

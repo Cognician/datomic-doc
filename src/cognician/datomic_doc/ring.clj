@@ -9,7 +9,8 @@
    [cognician.datomic-doc.transit :as transit]
    [cognician.datomic-doc.util :as util]
    [datomic.api :as d]
-   [ring.util.response :as response]))
+   [ring.util.response :as response]
+   [taoensso.tufte :as tufte :refer [defnp profile p]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Options
@@ -59,32 +60,79 @@
               lookup-ref)
       util/flatten-idents))
 
+(defn classify-ident [db lookup-ref]
+  (let [entity (d/entity db lookup-ref)]
+    (cond
+      (:db/valueType entity)          :schema
+      (:db.install/_partition entity) :partition
+      (:db/fn entity)                 :function
+      :else                           :enum)))
+
+(defn tx->txInstant [db tx]
+  (->> tx (d/entity db) :db/txInstant))
+
 (defn entity-stats [db lookup-type lookup-ref]
-  {:created      (d/q '[:find (min ?ts) . :in $ ?e :where
-                        [?e _ _ ?t true]
-                        [?t :db/txInstant ?ts]]
-                      (d/history db) lookup-ref)
-   :last-changed (case lookup-type
-                   :ident
-                   (d/q '[:find (max ?ts) . :in $ ?e :where
-                          (or-join [?e ?t]
-                            [_ ?e _ ?t]
-                            (and [?i :db/ident ?e]
-                                 [_ _ ?i ?t]))
-                          [?t :db/txInstant ?ts]]
-                        db lookup-ref)
-                   :entity
-                   (d/q '[:find (max ?ts) . :in $ ?e :where
-                          [?e _ _ ?t]
-                          [?t :db/txInstant ?ts]]
-                        db lookup-ref))
-   :datom-count  (count (case lookup-type
-                          :ident
-                          (seq (concat
-                                (d/datoms db :aevt lookup-ref)
-                                (d/datoms db :vaet lookup-ref)))
-                          :entity
-                          (seq (d/datoms db :eavt lookup-ref))))})
+  (let [ident-type (and (= lookup-type :ident)
+                        (classify-ident db lookup-ref))]
+    (cond->
+      {:created      (p :created 
+                        (tx->txInstant db
+                                       (d/q '[:find (min ?t) . :in $ ?e :where
+                                              [?e _ _ ?t true]]
+                                            (d/history db) lookup-ref)))
+       :last-changed (tx->txInstant db
+                                    (case lookup-type
+                                      :ident
+                                      (case ident-type
+                                        :partition nil
+                                        :function
+                                        (p :last-changed-function
+                                           (d/q '[:find (max ?t) . :in $ ?e :where
+                                                  [?e _ _ ?t]]
+                                                db lookup-ref))
+                                        :schema
+                                        (p :last-changed-schema
+                                           (d/q '[:find (max ?t) . :in $ ?e :where
+                                                  [_ ?e _ ?t]]
+                                                db lookup-ref))
+                                        :enum
+                                        (p :last-changed-enum
+                                           (d/q '[:find (max ?t) . :in $ ?e :where
+                                                  [_ _ ?e ?t]]
+                                                db lookup-ref)))
+                                      :entity
+                                      (p :last-changed-entity
+                                         (d/q '[:find (max ?t) . :in $ ?e :where
+                                                [?e _ _ ?t]]
+                                              db lookup-ref))))
+       :datom-count  (count (seq (case lookup-type
+                                   :ident
+                                   (case ident-type
+                                     (:function :partition) []
+                                     :schema
+                                     (p :datom-count-schema
+                                        (doall (seq (d/datoms db :aevt lookup-ref))))
+                                     :enum
+                                     (p :datom-count-enum
+                                        (doall (seq (d/datoms db :vaet lookup-ref)))))
+                                   :entity
+                                   (p :datom-count-entity
+                                      (doall (seq (d/datoms db :eavt lookup-ref)))))))}
+      ident-type (assoc :ident-type ident-type))))
+
+(comment
+  (tufte/add-basic-println-handler! {})
+  
+  (profile {} (entity-stats (user/db) :ident :find-or-create-tag))
+  (profile {} (entity-stats (user/db) :ident :cognician))
+  (profile {} (entity-stats (user/db) :ident :user/status))
+  (profile {} (entity-stats (user/db) :ident :status/active))
+  (profile {} (entity-stats (user/db) :ident :navigation-event/url))
+  (profile {} (entity-stats (user/db) :ident :chat/event))
+  (profile {} (entity-stats (user/db) :ident :chat.event.type/change-response))
+  
+  (profile {} (entity-stats (user/db) :entity [:user/email "barry@cognician.com"]))
+  _)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
