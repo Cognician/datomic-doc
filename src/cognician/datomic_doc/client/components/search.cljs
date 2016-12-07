@@ -4,6 +4,7 @@
             [datascript.core :as d]
             [rum.core :as rum]
             [cognician.datomic-doc.client.common :as common]
+            [cognician.datomic-doc.client.util :as util]
             goog.Uri))
 
 (defonce type-ahead-chan (chan))
@@ -60,7 +61,22 @@
         :auto-focus  "autofocus"
         :value       query
         :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}]
-      [:hr]
+      (when-not query
+        (let [namespaces (->> (d/datoms db :aevt :db/ident)
+                              (sequence (map (comp namespace :v)))
+                              distinct
+                              sort)]
+           (list
+            [:h2.title "Namespaces"]
+            [:.columns
+             (for [col (partition-all (js/Math.ceil (/ (count namespaces) 4)) namespaces)]
+               [:.column
+                [:ul
+                 (for [item col]
+                  [:li
+                   [:a {:href "javascript:"
+                        :on-click #(put! type-ahead-chan item)}
+                    (or item "(no namespace)")]])]])])))
       (when query
         (let [results (search-idents db query)
               result-count (count results)
