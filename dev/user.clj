@@ -21,7 +21,8 @@
   (-> index
       (ring/wrap-datomic-doc 
        {::dd/datomic-uri db-uri
-        ::dd/allow-write-pred (constantly true)})
+        ::dd/allow-write-pred (constantly true)
+        ::dd/deprecated-attr :cognician/deprecated})
       (resource/wrap-resource ".")))
 
 (defonce web-process (atom nil))

@@ -182,11 +182,12 @@ If the entity is schema or an enum value, show extra metadata:
     - Fulltext.
 - Schema and enum values:
   - Deprecated — if deprecated, colour the UI red or amber somehow.
+  - A link to search for all other entities sharing this a namespace with this entity; i.e. a search for `<namespace>/`.
+- All values:
   - Stats:
     - Created timestamp.
     - Last asserted timestamp and timespan-ago.
     - Datom count.
-  - A link to search for all other entities sharing this a namespace with this entity; i.e. a search for `<namespace>/`.
 
 ### Doc-string Editor
 

@@ -13,3 +13,7 @@ input#search {
     width: 100%;
     margin-bottom: 2em;
 }
+
+.metadata span.tag {
+  margin-right: 0.4em;
+}

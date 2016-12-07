@@ -36,4 +36,5 @@
              :builds-to-start  ["none"]
              :server-ip "0.0.0.0"
              :server-port 4000
+             :css-dirs ["resources/cognician/datomic-doc"]
              :repl false})

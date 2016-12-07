@@ -1,7 +1,9 @@
 (ns cognician.datomic-doc.client.util
   (:require [cljs.core.async :refer [<! >! chan put! timeout]]
             [cljs.pprint :as pprint]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            goog.i18n.DateTimeFormat
+            goog.i18n.NumberFormat)
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
@@ -20,6 +22,31 @@
                  :padding       "1em"
                  :white-space   "pre-wrap"}}
    (with-out-str (cljs.pprint/pprint m))])
+
+(def date-formats
+  (let [f goog.i18n.DateTimeFormat.Format]
+    {:full-date       (.-FULL_DATE f)
+     :full-datetime   (.-FULL_DATETIME f)
+     :full-time       (.-FULL_TIME f)
+     :long-date       (.-LONG_DATE f)
+     :long-datetime   (.-LONG_DATETIME f)
+     :long-time       (.-LONG_TIME f)
+     :medium-date     (.-MEDIUM_DATE f)
+     :medium-datetime (.-MEDIUM_DATETIME f)
+     :medium-time     (.-MEDIUM_TIME f)
+     :short-date      (.-SHORT_DATE f)
+     :short-datetime  (.-SHORT_DATETIME f)
+     :short-time      (.-SHORT_TIME f)}))
+
+(defn format-date [date-format date]
+  (.format (goog.i18n.DateTimeFormat. (or (date-format date-formats) date-format))
+           (js/Date. date)))
+
+(def number-format
+  (goog.i18n.NumberFormat. goog.i18n.NumberFormat.Format.DECIMAL))
+
+(defn format-number [number]
+  (.format number-format number))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; core.async helpers

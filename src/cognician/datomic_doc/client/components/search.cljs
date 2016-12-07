@@ -3,7 +3,8 @@
             [clojure.string :as string]
             [datascript.core :as d]
             [rum.core :as rum]
-            [cognician.datomic-doc.client.common :as common]))
+            [cognician.datomic-doc.client.common :as common]
+            goog.Uri))
 
 (defonce type-ahead-chan (chan))
 
@@ -41,45 +42,47 @@
                        (map :e)))
        (d/pull-many db '[*])))
 
-(rum/defc search < rum/reactive [state]
+(rum/defc search <
+  rum/reactive
+  {:did-mount (fn [state]
+                (when-let [query (.. (goog.Uri. js/window.location)
+                                     getQueryData
+                                     (get "query"))]
+                  (put! type-ahead-chan query))
+                state)}
+  [state]
   (let [{:keys [db options query]} (rum/react state)]
     [:div.container
      [:section.section
-
       [:input#search
        {:type        "text"
         :placeholder "Search on :db/ident"
         :auto-focus  "autofocus"
         :value       query
         :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}]
-      
       [:hr]
-
       (when query
-        
         (let [results (search-idents db query)
               result-count (count results)
               results (->> results
                            (group-by (comp namespace :db/ident))
                            (sort-by first)
                            doall)]
-         
-         (list
-          [:.box result-count " items found."]
-         
-          (for [[namespace ident-entities] results
-                :let [namespace-label (when (nil? namespace) "(no namespace)")]]
-            [:div {:key (or namespace namespace-label)}
-             [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
-             [:ul
-              (for [ident-entity (sort-by (comp name :db/ident) ident-entities)
-                    :let [name (-> ident-entity :db/ident name)]]
-                [:li
-                 [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
-                                 "/ident" 
-                                 (when-not (nil? namespace)
-                                   (str "/" namespace)) 
-                                 "/" name)}
-                  ":" (when namespace (str namespace "/")) name]])]
-             [:hr]]))))]]))
-              
+          (list
+           [:.box result-count " items found."]
+
+           (for [[namespace ident-entities] results
+                 :let                       [namespace-label (when (nil? namespace) "(no namespace)")]]
+             [:div {:key (or namespace namespace-label)}
+              [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
+              [:ul
+               (for [ident-entity (sort-by (comp name :db/ident) ident-entities)
+                     :let         [name (-> ident-entity :db/ident name)]]
+                 [:li
+                  [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
+                                  "/ident"
+                                  (when-not (nil? namespace)
+                                    (str "/" namespace))
+                                  "/" name)}
+                   ":" (when namespace (str namespace "/")) name]])]
+              [:hr]]))))]]))

@@ -72,65 +72,51 @@
   (->> tx (d/entity db) :db/txInstant))
 
 (defn entity-stats [db lookup-type lookup-ref]
-  (let [ident-type (and (= lookup-type :ident)
-                        (classify-ident db lookup-ref))]
-    (cond->
-      {:created      (p :created 
-                        (tx->txInstant db
-                                       (d/q '[:find (min ?t) . :in $ ?e :where
-                                              [?e _ _ ?t true]]
-                                            (d/history db) lookup-ref)))
-       :last-changed (tx->txInstant db
-                                    (case lookup-type
-                                      :ident
-                                      (case ident-type
-                                        :partition nil
-                                        :function
-                                        (p :last-changed-function
-                                           (d/q '[:find (max ?t) . :in $ ?e :where
-                                                  [?e _ _ ?t]]
-                                                db lookup-ref))
-                                        :schema
-                                        (p :last-changed-schema
-                                           (d/q '[:find (max ?t) . :in $ ?e :where
-                                                  [_ ?e _ ?t]]
-                                                db lookup-ref))
-                                        :enum
-                                        (p :last-changed-enum
-                                           (d/q '[:find (max ?t) . :in $ ?e :where
-                                                  [_ _ ?e ?t]]
-                                                db lookup-ref)))
-                                      :entity
-                                      (p :last-changed-entity
-                                         (d/q '[:find (max ?t) . :in $ ?e :where
-                                                [?e _ _ ?t]]
-                                              db lookup-ref))))
-       :datom-count  (count (seq (case lookup-type
-                                   :ident
-                                   (case ident-type
-                                     (:function :partition) []
-                                     :schema
-                                     (p :datom-count-schema
-                                        (doall (seq (d/datoms db :aevt lookup-ref))))
-                                     :enum
-                                     (p :datom-count-enum
-                                        (doall (seq (d/datoms db :vaet lookup-ref)))))
-                                   :entity
-                                   (p :datom-count-entity
-                                      (doall (seq (d/datoms db :eavt lookup-ref)))))))}
-      ident-type (assoc :ident-type ident-type))))
+  {:created      (p :created
+                    (tx->txInstant db
+                                   (d/q '[:find (min ?t) . :in $ ?e :where
+                                          [?e _ _ ?t true]]
+                                        (d/history db) lookup-ref)))
+   :last-touched (tx->txInstant db
+                                (case lookup-type
+                                  :partition nil
+                                  (:function :entity)
+                                  (p :last-touched-function/entity
+                                     (d/q '[:find (max ?t) . :in $ ?e :where
+                                            [?e _ _ ?t]]
+                                          db lookup-ref))
+                                  :schema
+                                  (p :last-touched-schema
+                                     (d/q '[:find (max ?t) . :in $ ?e :where
+                                            [_ ?e _ ?t]]
+                                          db lookup-ref))
+                                  :enum
+                                  (p :last-touched-enum
+                                     (d/q '[:find (max ?t) . :in $ ?e :where
+                                            [_ _ ?e ?t]]
+                                          db (d/entid db lookup-ref)))))
+   :datom-count  (count (seq (case lookup-type
+                               (:function :partition) []
+                               :schema
+                               (p :datom-count-schema
+                                  (doall (seq (d/datoms db :aevt lookup-ref))))
+                               :enum
+                               (p :datom-count-enum
+                                  (doall (seq (d/datoms db :vaet lookup-ref))))
+                               :entity
+                               (p :datom-count-entity
+                                  (doall (seq (d/datoms db :eavt lookup-ref)))))))})
 
 (comment
   (tufte/add-basic-println-handler! {})
-  
-  (profile {} (entity-stats (user/db) :ident :find-or-create-tag))
-  (profile {} (entity-stats (user/db) :ident :cognician))
-  (profile {} (entity-stats (user/db) :ident :user/status))
-  (profile {} (entity-stats (user/db) :ident :status/active))
-  (profile {} (entity-stats (user/db) :ident :navigation-event/url))
-  (profile {} (entity-stats (user/db) :ident :chat/event))
-  (profile {} (entity-stats (user/db) :ident :chat.event.type/change-response))
-  
+
+  (profile {} (entity-stats (user/db) :function :find-or-create-tag))
+  (profile {} (entity-stats (user/db) :partition :cognician))
+  (profile {} (entity-stats (user/db) :schema :user/status))
+  (profile {} (entity-stats (user/db) :enum :status/active))
+  (profile {} (entity-stats (user/db) :schema :navigation-event/url))
+  (profile {} (entity-stats (user/db) :schema :chat/event))
+  (profile {} (entity-stats (user/db) :enum :chat.event.type/change-response))
   (profile {} (entity-stats (user/db) :entity [:user/email "barry@cognician.com"]))
   _)
 
@@ -149,11 +135,12 @@
       response/response))
 
 (defn client-component [name data]
-  (format "<div data-component=\"%s\"><script type=\"application/edn\">%s</script></div>" 
+  (format "<div data-component=\"%s\"><script type=\"application/edn\">%s</script></div>"
           name data))
 
 (defn client-options [context]
-  (select-keys context [::dd/uri-prefix]))
+  (select-keys context [::dd/uri-prefix
+                        ::dd/deprecated-attr]))
 
 (defn datomic-schema? [attr]
   (let [ns (str (namespace attr))]
@@ -166,16 +153,16 @@
         (d/datoms db :aevt :db/ident)))
 
 (defn search [{:keys [::dd/context] :as request}]
-  (layout 
-   (client-component 
+  (layout
+   (client-component
     "search"
     {:options (-> context :options client-options)
-     :db {:schema {:db/ident {:db/unique :db.unique/identity}}
-          :datoms (all-idents-as-datoms (:db context))}})))
+     :db      {:schema {:db/ident {:db/unique :db.unique/identity}}
+               :datoms (all-idents-as-datoms (:db context))}})))
 
 (defn editor [{:keys [::dd/context] :as request}]
-  (layout 
-   (client-component 
+  (layout
+   (client-component
     "editor"
     (merge {:options (-> context :options client-options)}
            (select-keys context [:lookup-type :lookup-ref :entity :entity-stats])))))
@@ -211,6 +198,9 @@
                         :ident  lookup-attr
                         :entity [lookup-attr value])
           db          (get-in request [::dd/context :db])
+          lookup-type (case lookup-type
+                        :ident  (classify-ident db lookup-ref)
+                        :entity :entity)
           entity-map  (pull-entity db lookup-ref (::dd/deprecated-attr options))]
       (if (= entity-map {:db/id nil})
         (response/not-found "That entity does not exist.")
@@ -226,8 +216,8 @@
    {:get {"" search
           #{["/" [#"ident"  :lookup-type] "/" :ns "/" :name]
             ["/" [#"ident"  :lookup-type]         "/" :name]
-            ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" :value]
-            ["/" [#"entity" :lookup-type]         "/" :name "/" :value]}
+            ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
+            ["/" [#"entity" :lookup-type]         "/" :name "/" [#"[^/]+" :value]]}
           (bidi-ring/wrap-middleware editor (partial wrap-with-entity options))}}])
 
 (defn wrap-datomic-doc [handler options]
