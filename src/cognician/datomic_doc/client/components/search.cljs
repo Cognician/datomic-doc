@@ -63,7 +63,7 @@
         :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}]
       (when-not query
         (let [namespaces (->> (d/datoms db :aevt :db/ident)
-                              (sequence (map (comp namespace :v)))
+                              (sequence (keep (comp namespace :v)))
                               distinct
                               sort)]
            (list
@@ -76,7 +76,7 @@
                   [:li
                    [:a {:href "javascript:"
                         :on-click #(put! type-ahead-chan item)}
-                    (or item "(no namespace)")]])]])])))
+                    item]])]])])))
       (when query
         (let [results (search-idents db query)
               result-count (count results)
