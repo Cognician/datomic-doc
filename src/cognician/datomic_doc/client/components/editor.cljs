@@ -16,7 +16,7 @@
    [:strong "Created: "] (util/format-date :medium-date created) ". "
    (when last-touched
      (list [:strong "Last touched: "] (util/format-date :medium-date last-touched) ". "))
-   (when-not (zero? datom-count)
+   (when datom-count
      (list [:strong "Appearances: "] (util/format-number datom-count) "."))
    (when (and (= :enum lookup-type) (get entity deprecated-attr))
      (list

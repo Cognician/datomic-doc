@@ -89,8 +89,6 @@ For example:
                              [:user/email (get-in [:session :user :email])]))
 ```
 
-
-
 #### `::dd/deprecated-attr` — **OPTIONAL**
 
 A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results — unless optionally included — and cause the editor UI to display a "Deprecated" notice. 

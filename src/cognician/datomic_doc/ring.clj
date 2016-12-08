@@ -72,44 +72,33 @@
   (->> tx (d/entity db) :db/txInstant))
 
 (defn entity-stats [db lookup-type lookup-ref]
-  {:created      (p :created
-                    (tx->txInstant db
-                                   (d/q '[:find (min ?t) . :in $ ?e :where
-                                          [?e _ _ ?t true]]
-                                        (d/history db) lookup-ref)))
-   :last-touched (tx->txInstant db
-                                (case lookup-type
-                                  :partition nil
-                                  (:function :entity)
-                                  (p :last-touched-function/entity
-                                     (d/q '[:find (max ?t) . :in $ ?e :where
-                                            [?e _ _ ?t]]
-                                          db lookup-ref))
-                                  :schema
-                                  (p :last-touched-schema
-                                     (d/q '[:find (max ?t) . :in $ ?e :where
-                                            [_ ?e _ ?t]]
-                                          db lookup-ref))
-                                  :enum
-                                  (p :last-touched-enum
-                                     (d/q '[:find (max ?t) . :in $ ?e :where
-                                            [_ _ ?e ?t]]
-                                          db (d/entid db lookup-ref)))))
-   :datom-count  (count (seq (case lookup-type
-                               (:function :partition) []
-                               :schema
-                               (p :datom-count-schema
-                                  (doall (seq (d/datoms db :aevt lookup-ref))))
-                               :enum
-                               (p :datom-count-enum
-                                  (doall (seq (d/datoms db :vaet lookup-ref))))
-                               :entity
-                               (p :datom-count-entity
-                                  (doall (seq (d/datoms db :eavt lookup-ref)))))))})
+  (let [history-db (d/history db)
+        index (case lookup-type
+                :partition          nil
+                :schema             :aevt
+                :enum               :vaet
+                (:function :entity) :eavt)]
+    (cond-> {:created 
+             (p :created
+                (->> (d/datoms history-db :eavt lookup-ref)
+                     (transduce (map :tx) min Long/MAX_VALUE)
+                     (tx->txInstant db)))}
+      (contains? #{:schema :enum :entity :function} lookup-type)
+      (assoc :last-touched 
+             (p :last-touched
+                (->> (d/datoms history-db index lookup-ref)
+                     (transduce (map :tx) max 0)
+                     (tx->txInstant db))))
+      (contains? #{:schema :enum :entity} lookup-type)
+      (assoc :datom-count 
+             (p :datom-count
+                (-> (seq (d/datoms db index lookup-ref))
+                    seq
+                    count))))))
 
 (comment
   (tufte/add-basic-println-handler! {})
-
+  
   (profile {} (entity-stats (user/db) :function :find-or-create-tag))
   (profile {} (entity-stats (user/db) :partition :cognician))
   (profile {} (entity-stats (user/db) :schema :user/status))

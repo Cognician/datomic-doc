@@ -21,21 +21,21 @@
 
 (defn make-filter-xform-from-query [query]
   (cond (re-find #"^/" query)
-        (filter (comp (partial re-find (-> query
-                                           (string/replace #"^/" "")
-                                           regex-for-query))
-                      name
-                      :v))
-
-        (re-find #"/$" query)
-        (filter (comp (partial = (string/replace query #"/$" ""))
-                      namespace
-                      :v))
-
-        :else
-        (filter (comp (partial re-find (regex-for-query query))
-                      str
-                      :v))))
+    (filter (comp (partial re-find (-> query
+                                       (string/replace #"^/" "")
+                                       regex-for-query))
+                  name
+                  :v))
+    
+    (re-find #"/$" query)
+    (filter (comp (partial = (string/replace query #"/$" ""))
+                  namespace
+                  :v))
+    
+    :else
+    (filter (comp (partial re-find (regex-for-query query))
+                  str
+                  :v))))
 
 (defn search-idents [db query]
   (->> (d/datoms db :aevt :db/ident)
@@ -66,13 +66,13 @@
                               (sequence (keep (comp namespace :v)))
                               distinct
                               sort)]
-           (list
-            [:h2.title "Namespaces"]
-            [:.columns
-             (for [col (partition-all (js/Math.ceil (/ (count namespaces) 4)) namespaces)]
-               [:.column
-                [:ul
-                 (for [item col]
+          (list
+           [:h2.title "Namespaces"]
+           [:.columns
+            (for [col (partition-all (js/Math.ceil (/ (count namespaces) 4)) namespaces)]
+              [:.column
+               [:ul
+                (for [item col]
                   [:li
                    [:a {:href "javascript:"
                         :on-click #(put! type-ahead-chan item)}
@@ -86,7 +86,7 @@
                            doall)]
           (list
            [:.box result-count " items found."]
-
+           
            (for [[namespace ident-entities] results
                  :let                       [namespace-label (when (nil? namespace) "(no namespace)")]]
              [:div {:key (or namespace namespace-label)}
