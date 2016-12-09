@@ -43,6 +43,21 @@
                        (map :e)))
        (d/pull-many db '[*])))
 
+(rum/defc namespace-list [namespaces kind]
+  [:div
+   [:h2.title (when (= :deprecated kind)
+                "Deprecated ")
+              "Namespaces"]
+   [:.columns
+    (for [col (partition-all (js/Math.ceil (/ (count namespaces) 4)) namespaces)]
+      [:.column
+       [:ul
+        (for [item col]
+          [:li
+           [:a {:href "javascript:"
+                :on-click #(put! type-ahead-chan item)}
+            item]])]])]])
+
 (rum/defc search <
   rum/reactive
   {:did-mount (fn [state]
@@ -53,6 +68,12 @@
                 state)}
   [state]
   (let [{:keys [db options query]} (rum/react state)]
+    (prn (distinct
+          (into [] (comp (map (comp #(d/pull db '[*] %) :e))
+                         (filter (comp namespace :db/ident))
+                         (remove :deprecated?)
+                         (map (comp namespace :db/ident)))
+                (take 10 (d/datoms db :aevt :db/ident)))))
     [:div.container
      [:section.section
       [:input#search
@@ -62,21 +83,25 @@
         :value       query
         :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}]
       (when-not query
-        (let [namespaces (->> (d/datoms db :aevt :db/ident)
-                              (sequence (keep (comp namespace :v)))
+        (list
+         (namespace-list (->> (d/datoms db :aevt :db/ident)
+                              (into [] (comp (map (comp #(d/pull db '[*] %) :e))
+                                             (filter (comp namespace :db/ident))
+                                             (remove :deprecated?)
+                                             (map (comp namespace :db/ident))))
                               distinct
-                              sort)]
-          (list
-           [:h2.title "Namespaces"]
-           [:.columns
-            (for [col (partition-all (js/Math.ceil (/ (count namespaces) 4)) namespaces)]
-              [:.column
-               [:ul
-                (for [item col]
-                  [:li
-                   [:a {:href "javascript:"
-                        :on-click #(put! type-ahead-chan item)}
-                    item]])]])])))
+                              sort)
+                         :active)
+         [:br] [:br]
+         (namespace-list (->> (d/datoms db :aevt :db/ident)
+                              (into [] (comp (map (comp #(d/pull db '[*] %) :e))
+                                             (filter (comp namespace :db/ident))
+                                             (filter :deprecated?)
+                                             (map (comp namespace :db/ident))))
+                              distinct
+                              sort)
+                         :deprecated)))
+         
       (when query
         (let [results (search-idents db query)
               result-count (count results)

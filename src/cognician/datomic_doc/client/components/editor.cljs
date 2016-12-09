@@ -6,11 +6,9 @@
             [cognician.datomic-doc.client.common :as common]
             [cognician.datomic-doc.client.util :as util]))
 
-(rum/defc metadata [{:keys [cognician.datomic-doc/deprecated-attr]}
-                    lookup-type
+(rum/defc metadata [lookup-type 
                     {:keys [db/valueType db/cardinality db/unique db/index
-                            db/isComponent db/noHistory db/fulltext]
-                     :as entity}
+                            db/isComponent db/noHistory db/fulltext deprecated?]}
                     {:keys [created last-touched datom-count]}]
   [:.box.metadata
    [:strong "Created: "] (util/format-date :medium-date created) ". "
@@ -18,14 +16,14 @@
      (list [:strong "Last touched: "] (util/format-date :medium-date last-touched) ". "))
    (when datom-count
      (list [:strong "Appearances: "] (util/format-number datom-count) "."))
-   (when (and (= :enum lookup-type) (get entity deprecated-attr))
+   (when (and (= :enum lookup-type) deprecated?)
      (list
       [:br] [:br]
       [:span.tag.is-danger "Deprecated"]))
    (when (= :schema lookup-type)
      (list
       [:br] [:br]
-      (when (get entity deprecated-attr)
+      (when deprecated?
         [:span.tag.is-danger "Deprecated"])
       [:span.tag.is-primary (util/kw->label valueType)]
       (when (= cardinality :db.cardinality/many)
@@ -62,7 +60,7 @@
          (string/join " " lookup-ref)
          (str lookup-ref))]
       [:hr]
-      (metadata options lookup-type entity entity-stats)
+      (metadata lookup-type entity entity-stats)
       [:hr]
       (if-let [doc (:db/doc entity)]
         [:div doc]

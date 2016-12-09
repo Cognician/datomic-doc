@@ -12,6 +12,27 @@
 (def conn (partial d/connect db-uri))
 (def db (comp d/db conn))
 
+(comment
+  
+  @(d/transact (conn) [{:db/ident              :cognician/deprecated
+                        :db/valueType          :db.type/boolean
+                        :db/cardinality        :db.cardinality/one
+                        :db/id                 #db/id[:db.part/db]
+                        :db.install/_attribute :db.part/db}])
+  
+    
+  @(d/transact (conn) (for [s (d/q '[:find [?e ...] :in $ [?ns ...] :where
+                                     [?e :db/ident ?i]
+                                     [(namespace ?i) ?ns]]
+                                   (db) ["aggregate"
+                                         "bundle-statistics"
+                                         "resource-statistics"
+                                         "address"
+                                         "demo-template"])]
+                        [:db/add s :cognician/deprecated true]))
+                                          
+  _)
+
 (defn index [req]
   (when (and (= :get (:request-method req))
              (= "/" (:uri req)))

@@ -55,10 +55,12 @@
    :db/fulltext])
 
 (defn pull-entity [db lookup-ref deprecated-attr]
-  (-> (d/pull db (cond-> pull-spec
-                   deprecated-attr (conj deprecated-attr))
-              lookup-ref)
-      util/flatten-idents))
+  (let [entity (-> (d/pull db (cond-> pull-spec
+                                deprecated-attr (conj deprecated-attr))
+                           lookup-ref)
+                   util/flatten-idents)]
+    (cond-> entity
+      (get entity deprecated-attr) (assoc :deprecated? true))))
 
 (defn classify-ident [db lookup-ref]
   (let [entity (d/entity db lookup-ref)]
@@ -128,26 +130,28 @@
           name data))
 
 (defn client-options [context]
-  (select-keys context [::dd/uri-prefix
-                        ::dd/deprecated-attr]))
+  (select-keys context [::dd/uri-prefix]))
 
 (defn datomic-schema? [attr]
   (let [ns (str (namespace attr))]
     (or (string/starts-with? ns "db")
         (string/starts-with? ns "fressian"))))
 
-(defn all-idents-as-datoms [db]
+(defn all-idents-as-datoms [db deprecated-attr]
   (into [] (comp (remove (comp datomic-schema? :v))
-                 (map (fn [[e _ v]] [e :db/ident v])))
+                 (mapcat (fn [[e _ v]]
+                           (let [entity (d/entity db e)]
+                             (cond-> [[e :db/ident v]]
+                               (get entity deprecated-attr) (conj [e :deprecated? true]))))))
         (d/datoms db :aevt :db/ident)))
 
-(defn search [{:keys [::dd/context] :as request}]
+(defn search [{{:keys [db options]} ::dd/context :as request}]
   (layout
    (client-component
     "search"
-    {:options (-> context :options client-options)
+    {:options (:client-options options)
      :db      {:schema {:db/ident {:db/unique :db.unique/identity}}
-               :datoms (all-idents-as-datoms (:db context))}})))
+               :datoms (all-idents-as-datoms db (::dd/deprecated-attr options))}})))
 
 (defn editor [{:keys [::dd/context] :as request}]
   (layout
