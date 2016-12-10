@@ -1,18 +1,19 @@
 (ns cognician.datomic-doc.transit
-  (:require
-    [cognitect.transit :as t])
-  #?(:clj 
-     (:import
-      [java.io ByteArrayInputStream ByteArrayOutputStream InputStream])))
+  #?@(:clj
+      [(:require [cognitect.transit :as t])
+       (:import
+        [java.io ByteArrayInputStream ByteArrayOutputStream InputStream])]
+      :cljs
+      [(:require [cognitect.transit :as t])]))
 
 #?(:clj
    (defn read-transit [is]
-    (t/read (t/reader is :json))))
+     (t/read (t/reader is :json))))
 
 #?(:clj
    (defn read-transit-str [^String s]
      (read-transit (ByteArrayInputStream. (.getBytes s "UTF-8"))))
-   
+
    :cljs
    (defn read-transit-str [s]
      (t/read (t/reader :json) s)))
@@ -36,7 +37,7 @@
 #?(:clj
    (defn write-transit-str [o]
      (String. (write-transit-bytes o) "UTF-8"))
-   
+
    :cljs
    (defn write-transit-str [o]
      (t/write (t/writer :json) o)))
@@ -44,9 +45,9 @@
 #?(:clj
    (defn transit-response [response]
      (some-> response
-       (update :headers assoc 
-               "Content-Type" "application/transit+json; charset=utf-8")
-       (update :body write-transit-str))))
+             (update :headers assoc
+                     "Content-Type" "application/transit+json; charset=utf-8")
+             (update :body write-transit-str))))
 
 #?(:clj
    (defn wrap-transit [handler]

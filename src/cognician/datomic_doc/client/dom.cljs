@@ -1,8 +1,7 @@
 (ns cognician.datomic-doc.dom
-  (:require
-    [goog.userAgent :as ua]
-    [goog.net.XhrIo]
-    [cognician.datomic-doc.transit :as transit]))
+  (:require [goog.userAgent :as ua]
+            [goog.net.XhrIo]
+            [cognician.datomic-doc.transit :as transit]))
 
 (defn ajax
   ([url callback] (ajax url callback "GET" ""))
