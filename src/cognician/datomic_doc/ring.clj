@@ -20,7 +20,7 @@
         handler)))
 
 (defn wrap-with-entity [options handler]
-  (fn [{{:keys [lookup-type ns name value]} :route-params :as request}]
+  (fn [{{:keys [lookup-type ns name value]} :route-params uri :uri :as request}]
     (let [lookup-type (keyword lookup-type)
           name        (string/replace name "__Q" "?")
           lookup-attr (if ns
@@ -40,6 +40,7 @@
                     {:lookup-type  lookup-type
                      :lookup-ref   lookup-ref
                      :entity       entity-map
+                     :uri          uri
                      :entity-stats (datomic/entity-stats db lookup-type lookup-ref)})
             handler)))))
 
@@ -50,7 +51,8 @@
             ["/" [#"ident"  :lookup-type]         "/" :name]
             ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
             ["/" [#"entity" :lookup-type]         "/" :name "/" [#"[^/]+" :value]]}
-          (bidi-ring/wrap-middleware views/editor (partial wrap-with-entity options))}}])
+          {""      (bidi-ring/wrap-middleware views/detail (partial wrap-with-entity options))
+           "/edit" (bidi-ring/wrap-middleware views/edit (partial wrap-with-entity options))}}}])
 
 (defn wrap-datomic-doc [handler options]
   (let [options                         (options/prepare-options options)

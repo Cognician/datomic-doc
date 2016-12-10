@@ -8,24 +8,21 @@
     <link rel="stylesheet" href="/cognician/datomic-doc/markdown-plus/markdown-plus.min.css"/>
     <script src="/cognician/datomic-doc/markdown-plus/markdown-plus.min.js" charset="utf-8"></script>
     <script>
-    $(function() {layout.close('north');})
-    // $(function() {
-    //   $.get('sample.md', function(data) { // load sample text
-    //     editor.session.setValue(data, -1);
-    //     setTimeout(function() {
-    //       window.addEventListener("hashchange", function() {
-    //         $('.ui-layout-east').scrollTop($('.ui-layout-east').scrollTop() - 6);
-    //       }); // a little gap to top
-    //       if(window.location.hash.length > 0) {
-    //         $('.ui-layout-east').scrollTop($(window.location.hash).offset().top - 30); // scroll to hash element
-    //       }
-    //     }, 1000);
-    //   });
-    // });
+    $(function() {
+      editor.session.setValue("#content#", -1);
+      setTimeout(function() {
+        window.addEventListener("hashchange", function() {
+          $('.ui-layout-east').scrollTop($('.ui-layout-east').scrollTop() - 6);
+        }); // a little gap to top
+        if(window.location.hash.length > 0) {
+          $('.ui-layout-east').scrollTop($(window.location.hash).offset().top - 30); // scroll to hash element
+        }
+      }, 1000);
+    });
     </script>
   </head>
   <body>
-    <div id="mdp-container" style="height: 99%;margin-top:2em">
+    <div id="mdp-container" style="height: 99%">
       <div class="ui-layout-north">
         <div id="toolbar" class="noselect">
           <i title="Bold" class="fa fa-bold styling-icon" data-modifier="**"></i>

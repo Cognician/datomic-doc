@@ -1,4 +1,4 @@
-(ns cognician.datomic-doc.client.components.editor
+(ns cognician.datomic-doc.client.components.detail
   (:require [cljs.core.async :refer [chan put!]]
             [clojure.string :as string]
             [datascript.core :as d]
@@ -39,8 +39,8 @@
       (when fulltext
         [:span.tag "Full-text Indexed"])))])
 
-(rum/defc editor < rum/reactive [state]
-  (let [{:keys [options lookup-type lookup-ref entity entity-stats]} (rum/react state)
+(rum/defc detail < rum/reactive [state]
+  (let [{:keys [options lookup-type lookup-ref entity entity-stats uri]} (rum/react state)
         {:keys [:cognician.datomic-doc/uri-prefix]} options]
     [:div.container
      [:section.section
@@ -52,7 +52,11 @@
          (when (contains? #{:schema :enum} lookup-type)
            (let [query (str (namespace lookup-ref) "/")]
              [:a.button {:href (str uri-prefix "?query=" query)}
-              "Search \"" query "\""]))]]]
+              "Search \"" query "\""]))]]
+       [:.nav-right.nav-menu
+        [:span.nav-item
+         [:a.button {:href (str uri "/edit")}
+          "Edit :db/doc"]]]]
       [:h1.title 
        [:strong (util/kw->label lookup-type)]
        " "
