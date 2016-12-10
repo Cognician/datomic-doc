@@ -43,87 +43,85 @@
                        (map :e)))
        (d/pull-many db '[*])))
 
-(rum/defc namespace-list [namespaces kind]
-  [:div
-   [:h2.title (when (= :deprecated kind)
-                "Deprecated ")
-              "Namespaces"]
+(rum/defc search-input [query]
+  [:input#search
+   {:type        "text"
+    :placeholder "Search on :db/ident"
+    :auto-focus  "autofocus"
+    :value       query
+    :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}])
+
+(rum/defc namespace-list [options namespaces kind]
+  [:div {:key kind}
+   [:h2.title
+    (when (= :deprecated kind)
+      "Deprecated ")
+    "Namespaces (" (count namespaces) ")"]
    [:.columns
     (for [col (partition-all (js/Math.ceil (/ (count namespaces) 4)) namespaces)]
-      [:.column
-       [:ul
-        (for [item col]
-          [:li
-           [:a {:href "javascript:"
-                :on-click #(put! type-ahead-chan item)}
-            item]])]])]])
+      [:.column {:key col}
+       [:ul.attr-list
+        (for [[item _ types] col]
+          [:li {:key item}
+           [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
+                          "?query=" item "/")}
+            item
+            (when-not (contains? types :schema)
+              [:span.tag.is-small (util/kw->label (first types))])]])]])]])
+
+(rum/defc result-list [options db query]
+  (let [results (search-idents db query)
+        result-count (count results)
+        results (->> results
+                     (group-by (comp namespace :db/ident))
+                     (sort-by first))]
+    [:div
+     [:.box result-count " items found."] 
+     (for [[namespace ident-entities] results
+           :let [namespace-label (when (nil? namespace) "(no namespace)")]]
+       [:div {:key (or namespace namespace-label)}
+        [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
+        [:ul.attr-list
+         (for [ident-entity (sort-by (juxt :deprecated? (comp name :db/ident)) ident-entities)
+               :let [name (-> ident-entity :db/ident name)]]
+           [:li {:key ident-entity}
+            [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
+                            "/ident"
+                            (when-not (nil? namespace)
+                              (str "/" namespace))
+                            "/" (string/replace name "?" "__Q"))}
+             ":" (when namespace (str namespace "/")) name]
+            (when (:deprecated? ident-entity)
+              [:span.tag.is-small.is-danger "Deprecated"])])]
+        [:hr]])]))
 
 (rum/defc search <
   rum/reactive
-  {:did-mount (fn [state]
-                (when-let [query (.. (goog.Uri. js/window.location)
-                                     getQueryData
-                                     (get "query"))]
-                  (put! type-ahead-chan query))
+  {:will-mount (fn [state]
+                 (when-let [query (.. (goog.Uri. js/window.location)
+                                      getQueryData
+                                      (get "query"))]
+                   (swap! (first (:rum/args state)) assoc :query query))
                 state)}
   [state]
-  (let [{:keys [db options query]} (rum/react state)]
-    (prn (distinct
-          (into [] (comp (map (comp #(d/pull db '[*] %) :e))
-                         (filter (comp namespace :db/ident))
-                         (remove :deprecated?)
-                         (map (comp namespace :db/ident)))
-                (take 10 (d/datoms db :aevt :db/ident)))))
+  (let [{:keys [options db query]} (rum/react state)]
     [:div.container
      [:section.section
-      [:input#search
-       {:type        "text"
-        :placeholder "Search on :db/ident"
-        :auto-focus  "autofocus"
-        :value       query
-        :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}]
+      (search-input query)
       (when-not query
-        (list
-         (namespace-list (->> (d/datoms db :aevt :db/ident)
-                              (into [] (comp (map (comp #(d/pull db '[*] %) :e))
-                                             (filter (comp namespace :db/ident))
-                                             (remove :deprecated?)
-                                             (map (comp namespace :db/ident))))
+        (let [namespaces (->> (d/datoms db :aevt :db/ident)
+                              (map (comp #(d/pull db '[*] %) :e))
+                              (filter (comp namespace :db/ident))
+                              (group-by (comp namespace :db/ident))
+                              (map (fn [[ns entities]]
+                                     [ns (every? :deprecated? entities) (set (map :ident-type entities))]))
                               distinct
-                              sort)
-                         :active)
-         [:br] [:br]
-         (namespace-list (->> (d/datoms db :aevt :db/ident)
-                              (into [] (comp (map (comp #(d/pull db '[*] %) :e))
-                                             (filter (comp namespace :db/ident))
-                                             (filter :deprecated?)
-                                             (map (comp namespace :db/ident))))
-                              distinct
-                              sort)
-                         :deprecated)))
-         
-      (when query
-        (let [results (search-idents db query)
-              result-count (count results)
-              results (->> results
-                           (group-by (comp namespace :db/ident))
-                           (sort-by first)
-                           doall)]
+                              (sort-by first))]
           (list
-           [:.box result-count " items found."]
-           
-           (for [[namespace ident-entities] results
-                 :let                       [namespace-label (when (nil? namespace) "(no namespace)")]]
-             [:div {:key (or namespace namespace-label)}
-              [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
-              [:ul
-               (for [ident-entity (sort-by (comp name :db/ident) ident-entities)
-                     :let         [name (-> ident-entity :db/ident name)]]
-                 [:li
-                  [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
-                                  "/ident"
-                                  (when-not (nil? namespace)
-                                    (str "/" namespace))
-                                  "/" name)}
-                   ":" (when namespace (str namespace "/")) name]])]
-              [:hr]]))))]]))
+           (rum/with-key (namespace-list options (remove second namespaces) :active)
+                         :active)
+           [:br] [:br]
+           (rum/with-key (namespace-list options (filter second namespaces) :deprecated)
+                         :deprecated))))
+      (when query
+        (result-list options db query))]]))

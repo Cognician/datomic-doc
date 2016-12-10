@@ -2,7 +2,7 @@
   (:require
     [goog.userAgent :as ua]
     [goog.net.XhrIo]
-    [cognician.datomic-doc.util :as util]))
+    [cognician.datomic-doc.transit :as transit]))
 
 (defn ajax
   ([url callback] (ajax url callback "GET" ""))
@@ -18,6 +18,6 @@
                text   (.getResponseText xhr)]
            (when (== 200 status)
              (when callback
-               (callback (util/read-transit-str text))))))
+               (callback (transit/read-transit-str text))))))
        method
        body))))

@@ -101,6 +101,8 @@
 (comment
   (tufte/add-basic-println-handler! {})
   
+  (entity-stats (user/db) :schema :meta/no-icon-border?)
+  
   (profile {} (entity-stats (user/db) :function :find-or-create-tag))
   (profile {} (entity-stats (user/db) :partition :cognician))
   (profile {} (entity-stats (user/db) :schema :user/status))
@@ -129,8 +131,8 @@
   (format "<div data-component=\"%s\"><script type=\"application/edn\">%s</script></div>"
           name data))
 
-(defn client-options [context]
-  (select-keys context [::dd/uri-prefix]))
+(defn client-options [options]
+  (select-keys options [::dd/uri-prefix]))
 
 (defn datomic-schema? [attr]
   (let [ns (str (namespace attr))]
@@ -141,23 +143,24 @@
   (into [] (comp (remove (comp datomic-schema? :v))
                  (mapcat (fn [[e _ v]]
                            (let [entity (d/entity db e)]
-                             (cond-> [[e :db/ident v]]
+                             (cond-> [[e :db/ident v]
+                                      [e :ident-type (classify-ident db v)]]
                                (get entity deprecated-attr) (conj [e :deprecated? true]))))))
         (d/datoms db :aevt :db/ident)))
 
-(defn search [{{:keys [db options]} ::dd/context :as request}]
+(defn search [{{:keys [db options] :as context} ::dd/context :as request}]
   (layout
    (client-component
     "search"
-    {:options (:client-options options)
+    {:options (client-options options)
      :db      {:schema {:db/ident {:db/unique :db.unique/identity}}
                :datoms (all-idents-as-datoms db (::dd/deprecated-attr options))}})))
 
-(defn editor [{:keys [::dd/context] :as request}]
+(defn editor [{{:keys [options] :as context} ::dd/context :as request}]
   (layout
    (client-component
     "editor"
-    (merge {:options (-> context :options client-options)}
+    (merge {:options (client-options options)}
            (select-keys context [:lookup-type :lookup-ref :entity :entity-stats])))))
 
 (defn commit! [request]
@@ -184,6 +187,7 @@
 (defn wrap-with-entity [options handler]
   (fn [{{:keys [lookup-type ns name value]} :route-params :as request}]
     (let [lookup-type (keyword lookup-type)
+          name (string/replace name "__Q" "?")
           lookup-attr (if ns
                         (keyword ns name)
                         (keyword name))

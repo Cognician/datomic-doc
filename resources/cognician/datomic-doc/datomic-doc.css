@@ -17,3 +17,11 @@ input#search {
 .metadata span.tag {
   margin-right: 0.4em;
 }
+
+.attr-list li {
+  margin-bottom: 0.2em;
+}
+
+.attr-list li span.tag {
+  margin-left: 0.7em;
+}

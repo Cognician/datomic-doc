@@ -20,17 +20,56 @@
                         :db/id                 #db/id[:db.part/db]
                         :db.install/_attribute :db.part/db}])
   
-    
-  @(d/transact (conn) (for [s (d/q '[:find [?e ...] :in $ [?ns ...] :where
-                                     [?e :db/ident ?i]
-                                     [(namespace ?i) ?ns]]
-                                   (db) ["aggregate"
-                                         "bundle-statistics"
-                                         "resource-statistics"
-                                         "address"
-                                         "demo-template"])]
-                        [:db/add s :cognician/deprecated true]))
-                                          
+  @(d/transact (conn) (concat
+                       (for [s [:meta/description
+                                :meta/icon
+                                :meta/message-templates
+                                :meta/no-icon-border?
+                                :meta/price
+                                :meta/slug
+                                :meta/title
+                                :meta/vatable
+                                :transaction/responsible-user-uuid
+                                :transaction/user-uuid
+                                :transaction/corrected?
+                                :semaphore.message-transport/envisionme
+                                :semaphore.message-transport/mad-mimi
+                                :semaphore.message-transport/nojoshmo
+                                :semaphore.message-transport/postmark]]
+                         [:db/add s :cognician/deprecated true])
+                       (for [s (d/q '[:find [?e ...] :in $ [?ns ...] :where
+                                      [?e :db/ident ?i]
+                                      [(namespace ?i) ?ns]]
+                                    (db) ["address"
+                                          "aggregate"
+                                          "bundle-statistics"
+                                          "contact"
+                                          "currency"
+                                          "demo-template"
+                                          "fuse"
+                                          "fusebox"
+                                          "hex"
+                                          "invite"
+                                          "legacy-resource-statistics"
+                                          "license"
+                                          "list"
+                                          "memento"
+                                          "memento.tag"
+                                          "message"
+                                          "message-template"
+                                          "message.trigger"
+                                          "order"
+                                          "package"
+                                          "promo-code"
+                                          "promo-code.value-type"
+                                          "repo"
+                                          "resource-statistics"
+                                          "schedule"
+                                          "searchable"
+                                          "semaphore-template"
+                                          "setting"])]
+                         [:db/add s :cognician/deprecated true])))
+  
   _)
 
 (defn index [req]
