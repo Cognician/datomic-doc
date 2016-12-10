@@ -4,7 +4,6 @@
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
             [cognician.datomic-doc.datomic :as datomic]
-            [cognician.datomic-doc.transit :as transit]
             [ring.util.response :as response]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -24,10 +23,6 @@
 
 (defn client-options [options]
   (select-keys options [::dd/uri-prefix]))
-
-(defn pprint-pre [val]
-  (format "<pre style='white-space: pre-wrap;'>%s</pre>"
-          (with-out-str (pprint/pprint val))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
@@ -51,10 +46,3 @@
 
 (defn edit [request]
   (layout "mdp" (get-in request [::dd/context :entity :db/doc])))
-
-(defn commit! [request]
-  {:status  200
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body    (str "commit!:<br>"
-                 (pprint-pre (::dd/context request))
-                 (pprint-pre (transit/read-transit-body (:body request))))})

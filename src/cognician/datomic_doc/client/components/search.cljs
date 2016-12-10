@@ -82,7 +82,8 @@
        [:div {:key (or namespace namespace-label)}
         [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
         [:ul.attr-list
-         (for [ident-entity (sort-by (juxt :deprecated? (comp name :db/ident)) ident-entities)
+         (for [ident-entity (->> ident-entities
+                                 (sort-by (juxt :deprecated? (comp name :db/ident))))
                :let [name (-> ident-entity :db/ident name)]]
            [:li {:key ident-entity}
             [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
@@ -114,7 +115,9 @@
                               (filter (comp namespace :db/ident))
                               (group-by (comp namespace :db/ident))
                               (map (fn [[ns entities]]
-                                     [ns (every? :deprecated? entities) (set (map :ident-type entities))]))
+                                     [ns 
+                                      (every? :deprecated? entities) 
+                                      (set (map :ident-type entities))]))
                               distinct
                               (sort-by first))]
           (list

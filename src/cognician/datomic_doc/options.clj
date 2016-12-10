@@ -1,7 +1,7 @@
 (ns cognician.datomic-doc.options
   (:require [clojure.spec :as s]
             [cognician.datomic-doc :as dd]
-            [cognician.datomic-doc.util :as util]))
+            [cognician.datomic-doc.spec :as spec]))
 
 (s/def ::dd/datomic-uri string?)
 (s/def ::dd/uri-prefix string?)
@@ -24,5 +24,5 @@
 
 (defn prepare-options [options]
   (-> default-options
-      (merge (util/conform! ::dd/config options))
+      (merge (spec/conform! ::dd/config options))
       (update ::dd/uri-prefix #(str "/" %))))

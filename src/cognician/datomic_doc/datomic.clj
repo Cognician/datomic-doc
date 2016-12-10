@@ -1,6 +1,6 @@
 (ns cognician.datomic-doc.datomic
   (:require [clojure.string :as string]
-            [cognician.datomic-doc.util :as util]
+            [clojure.walk :as walk]
             [datomic.api :as d]))
 
 (def pull-spec
@@ -15,11 +15,18 @@
    :db/isComponent
    :db/fulltext])
 
+(defn flatten-idents [m]
+  (walk/postwalk (fn [item]
+                   (if (and (map? item) (:db/ident item) (= 1 (count (keys item))))
+                     (:db/ident item)
+                     item))
+                 m))
+
 (defn pull-entity [db lookup-ref deprecated-attr]
   (let [entity (-> (d/pull db (cond-> pull-spec
                                 deprecated-attr (conj deprecated-attr))
                            lookup-ref)
-                   util/flatten-idents)]
+                   flatten-idents)]
     (cond-> entity
       (get entity deprecated-attr) (assoc :deprecated? true))))
 

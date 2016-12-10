@@ -10,10 +10,6 @@
 
 (def kw->label (comp string/capitalize name))
 
-(defn go-to-url [url]
-  (when url
-    (set! (.. js/window -location -href) url)))
-
 (defn debug-pre [m]
   [:pre {:style {:background    "#eee"
                  :border-radius "10px"

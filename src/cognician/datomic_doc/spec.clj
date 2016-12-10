@@ -1,10 +1,5 @@
-(ns cognician.datomic-doc.util
-  #?@(:clj
-      [(:require [clojure.spec :as s]
-                 [clojure.walk :as walk])]
-      :cljs
-      [(:require [cljs.spec :as s]
-                 [clojure.walk :as walk])]))
+(ns cognician.datomic-doc.spec
+  (:require [clojure.spec :as s]))
 
 (defn conform!
   "Like s/conform, but throws an error with s/explain-data on failure."
@@ -18,10 +13,3 @@
                        {:data  (s/explain-data spec x)
                         :value x}))
        conformed))))
-
-(defn flatten-idents [m]
-  (walk/postwalk (fn [item]
-                   (if (and (map? item) (:db/ident item) (= 1 (count (keys item))))
-                     (:db/ident item)
-                     item))
-                 m))
