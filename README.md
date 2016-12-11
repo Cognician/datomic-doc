@@ -27,87 +27,33 @@ Integration with your web service handler, using sensible "getting started" conf
         ::dd/allow-write-fn (constantly true)}))
 ```
 
-### Configuration map options:
+### Configuration map options
 
-#### `::dd/datomic-uri` — **REQUIRED**
-
-A string with a valid Datomic database URI. 
-
-For example:
-
-```clojure
-::dd/datomic-uri "datomic:free://datomic-doc"
-```
-
-
-
-#### `::dd/allow-write-pred` — **OPTIONAL**
-
-A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automaticaly pass the check for `::dd/allow-read-fn` (below). 
-
-This enables the full editing UI.
-
-For example:
-
-```clojure
-::dd/allow-write-pred (fn [request] 
-                        (contains? (get-in [:session :user :roles]) :admin))
-```
-
-
-
-#### `::dd/allow-read-pred` — **OPTIONAL**
-
-A function which takes the request and must return `true` if the active user may access the UI, but not alter anything.
-
-This renders only the Markdown content with no editing tools. 
-
-For example:
-
-```clojure
-::dd/allow-read-pred (fn [request] 
-                       (contains? (get-in [:session :user :roles]) :staff))
-```
-
-
+Key | Type | Use
+---|---|---
+`::dd/datomic-uri` | String | **Required.** Valid Datomic database URI.
+`::dd/allow-write-pred` | Predicate function | Enables the full editing UI for the active user. A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automatically pass the check for `::dd/allow-read-pred`.
+`::dd/allow-read-pred` | Predicate function | Enables read-only UI for the active user. A function which takes the request and must return `true` if the active user may access the UI, but not alter anything.
+`::dd/annotate-tx-fn` | Function | Allows for Datomic Doc's transactions to be annotated. A function which takes the request and a map and must return that map with any attr/value pairs that should be transacted on the inbound transaction.
+`::dd/deprecated-attr` | Keyword | When asserted on any entity with `:db/ident` with a truthy value, will cause the UI to display a "Deprecated" notice for that entity. Also, fully deprecated _namespaces_ (where all attributes in a namespace are deprecated) will be listed separately in the namespace list.
+`::dd/uri-prefix` | String | The first segment of all routes served by Datomic Doc. Can't contain any `"/"` characters. Default value is `"dd"`.
 
 **Important note! If neither of the `::dd/allow-*-pred` options is provided, the UI will not be available to anyone**.
 
-
-
-#### `::dd/annotate-tx-fn` — **OPTIONAL**
-
-A function which takes the request and a map and must return that map with any attr/value pairs that can be transacted. 
-
-Typically used to annotate transactions with the enacting user.
-
-For example:
+### Full example configuration
 
 ```clojure
-::dd/annotate-tx-fn (fn [request tx-map] 
-                      (assoc tx-map :transaction/altered-by 
-                             [:user/email (get-in [:session :user :email])]))
+{::dd/datomic-uri      "datomic:free://datomic-doc"
+ ::dd/allow-write-pred (fn [request]
+                         (contains? (get-in request [:user :roles]) :admin))
+ ::dd/allow-read-pred  (fn [request]
+                         (contains? (get-in request [:user :roles]) :staff))
+ ::dd/annotate-tx-fn   (fn [request tx-map] 
+                         (assoc tx-map :transaction/altered-by 
+                                [:user/email (get-in request [:user :email])]))
+ ::dd/deprecated-attr  :datomic-doc/deprecated
+ ::dd/uri-prefix       "datomic-doc"}
 ```
-
-#### `::dd/deprecated-attr` — **OPTIONAL**
-
-A keyword which, when asserted on any entity with `:db/ident` with a truthy value, will exclude it from search results — unless optionally included — and cause the editor UI to display a "Deprecated" notice. 
-
-If not provided, the UI will not provide an option to include deprecated entities. 
-
-For example:
-
-```clojure
-::dd/deprecated-attr :cognician/deprecated
-```
-
-#### `::dd/uri-prefix` — **OPTIONAL**
-
-A string declaring the initial part of all routes served by Datomic Doc.
-
-Can't contain any `"/"` characters.
-
-Default value is `"dd"`.
 
 ------
 
@@ -115,15 +61,17 @@ Default value is `"dd"`.
 
 ### Search
 
-At `/dd`, a search UI:
+At `/dd`, a search UI, which searches all `:db/ident` values - schema, enums, partitions and database functions (Datomic's own idents are excluded). Results lead to [permalinks](#permalinks).
 
-- Find all schema and non-schema `:db/ident` entities that do _not_ have `<:deprecated-attr> true`. 
-- Enable including deprecated item search with a checkbox.
-- Simply links to permalink system.
-- Examples:
-  - `user` seeks `:user*`, `:user*/*` and `:*/user*` — general case: return matches of `(re-find (re-pattern ?input) (str attr))`.
-  - `user/` seeks `:user/*` — optimised case: return only  `(= ?input (namespace attr))`.
-  - `/email` seeks `:*/email*` — optimised case: return only `(re-find (re-pattern ?input) (name attr))`
+#### Examples:
+
+Query | Search result | Examples
+---|---|---
+`user` | Presence of query in namespace and name of ident. | `:user/email`, `:group/users`
+`user/` | Exact match of query to namespace of ident. | `:user/email`, `:user/password`
+`/user` | Presence of query in name of ident. | `:group/users`, `:license/max-user-count`
+
+Searches can be pre-filled via a query string parameter `query`, e.g. `/dd?query=user`.
 
 ### Permalinks
 
@@ -152,44 +100,38 @@ This requires that the attr be `:db/unique` and that the value be of `:db/valueT
 
  `/dd/entity/user/email/no@spam.thanks` ⟶ `[:user/email "no@spam.thanks"]`
 
-### Type and identity heading
-
-`Schema: :user/email` 
-`Enum: :status/active` 
-`Database function: :find-or-create-tag` 
-`Database partition: :cognician` 
-- `:db/ident` displayed.
-
-`Entity: :user/email "no@spam.thanks"` 
-
-- The entity has no `:db/ident`.
-- The full lookup ref from the route is displayed.
+**Note:** Question mark characters are represented as `__Q` in permalinks: 
+- e.g. `:user/opt-in?` ⟶ `/dd/ident/user/opt-in__Q`.
 
 ### Metadata
 
-If the entity is schema or an enum value, show extra metadata:
+#### All entities
 
-- Schema only:
-  - Type.
-  - Cardinality.
-  - Uniqueness.
-  - Flags:
-    - Indexed (only show if not also Unique).
-    - No History.
-    - Is Component.
-    - Fulltext.
-- Schema and enum values:
-  - Deprecated — if deprecated, colour the UI red or amber somehow.
-  - A link to search for all other entities sharing this a namespace with this entity; i.e. a search for `<namespace>/`.
-- All values:
-  - Stats:
-    - Created timestamp.
-    - Last asserted timestamp and timespan-ago.
-    - Datom count.
+- Created timestamp.
+- Last used timestamp.
+- Usage count (by count of datoms).
+
+#### Schema only
+
+- Type.
+- Cardinality.
+- Uniqueness.
+- Flags:
+  - Indexed (only show if not also Unique).
+  - No History.
+  - Is Component.
+  - Fulltext.
+
+#### Schema and enum values only
+
+- Deprecated — if deprecated, indicate this.
+- A link to search for all other entities sharing this a namespace with this entity; i.e. a search for `<namespace>/`.
 
 ### Doc-string Editor
 
-Edits the `:db/doc` string of whichever entity is loaded with a Markdown editor, using <https://github.com/tylingsoft/markdown-plus> — online demo: <http://mdp.tylingsoft.com/>. 
+Append `/edit` to any [permalink](#permalinks), e.g. `/dd/ident/db/doc/edit`.
+
+Loads the entity's `:db/doc` string into the <https://github.com/tylingsoft/markdown-plus> Markdown editor — online demo: <http://mdp.tylingsoft.com/>. 
 
 #### Notable features include:
 
