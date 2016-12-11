@@ -9,11 +9,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Helpers
 
-(defn layout [template-name & content]
-  (-> (str template-name ".html")
+(defn layout [template-name js-to-load & content]
+  (-> (str "cognician/datomic-doc/" template-name ".html")
       io/resource
       slurp
       (string/replace "#content#" (apply str content))
+      (string/replace "#js-to-load#" js-to-load)
       response/response))
 
 (def component-template
@@ -34,7 +35,7 @@
          :db
          {:schema {:db/ident {:db/unique :db.unique/identity}}
           :datoms (datomic/all-idents-as-datoms db (::dd/deprecated-attr options))}})
-       (layout "index")))
+       (layout "index" (::dd/js-to-load options))))
 
 (defn detail [{{:keys [options] :as context} ::dd/context :as request}]
   (->> (client-component
@@ -42,7 +43,7 @@
         (merge {:options (client-options options)}
                (select-keys context 
                             [:lookup-type :lookup-ref :entity :entity-stats :uri])))
-       (layout "index")))
+       (layout "index" (::dd/js-to-load options))))
 
 (defn edit [request]
   (layout "mdp" (get-in request [::dd/context :entity :db/doc])))

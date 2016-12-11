@@ -38,7 +38,7 @@
       (:db/fn entity)                 :function
       :else                           :enum)))
 
-(defn tx->txInstant [db tx]
+(defn tx->tx-instant [db tx]
   (->> tx (d/entity db) :db/txInstant))
 
 (defn entity-stats [db lookup-type lookup-ref]
@@ -51,30 +51,17 @@
     (cond-> {:created
              (->> (d/datoms history-db :eavt lookup-ref)
                   (transduce (map :tx) min Long/MAX_VALUE)
-                  (tx->txInstant db))}
-      (contains? #{:schema :enum :entity :function} lookup-type)
+                  (tx->tx-instant db))}
+      (contains? #{:schema :enum :function :entity} lookup-type)
       (assoc :last-touched
              (->> (d/datoms history-db index lookup-ref)
                   (transduce (map :tx) max 0)
-                  (tx->txInstant db)))
+                  (tx->tx-instant db)))
       (contains? #{:schema :enum :entity} lookup-type)
       (assoc :datom-count
              (-> (seq (d/datoms db index lookup-ref))
                  seq
                  count)))))
-
-(comment
-  (entity-stats (user/db) :schema :meta/no-icon-border?)
-
-  (time (entity-stats (user/db) :function :find-or-create-tag))
-  (time (entity-stats (user/db) :partition :cognician))
-  (time (entity-stats (user/db) :schema :user/status))
-  (time (entity-stats (user/db) :enum :status/active))
-  (time (entity-stats (user/db) :schema :navigation-event/url))
-  (time (entity-stats (user/db) :schema :chat/event))
-  (time (entity-stats (user/db) :enum :chat.event.type/change-response))
-  (time (entity-stats (user/db) :entity [:user/email "barry@cognician.com"]))
-  _)
 
 (defn datomic-schema? [attr]
   (let [ns (str (namespace attr))]

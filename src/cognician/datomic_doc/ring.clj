@@ -6,6 +6,7 @@
             [cognician.datomic-doc.options :as options]
             [cognician.datomic-doc.views :as views]
             [datomic.api :as d]
+            [ring.middleware.resource :as resource]
             [ring.util.response :as response]))
 
 (defn wrap-with-context [options handler]
@@ -16,7 +17,8 @@
                    :db (d/db conn)
                    :options (select-keys options [::dd/uri-prefix
                                                   ::dd/deprecated-attr
-                                                  ::dd/annotate-tx-fn])}))
+                                                  ::dd/annotate-tx-fn
+                                                  ::dd/js-to-load])}))
         handler)))
 
 (defn wrap-with-entity [options handler]
@@ -53,7 +55,8 @@
               ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
               ["/" [#"entity" :lookup-type]         "/" :name "/" [#"[^/]+" :value]]}
             {""      (bidi-ring/wrap-middleware views/detail with-entity)
-             "/edit" (bidi-ring/wrap-middleware views/edit   with-entity)}}}]))
+             "/edit" (bidi-ring/wrap-middleware views/edit   with-entity)}}}
+     "/cognician/datomic-doc" {:get #(resource/resource-request % ".")}]))
 
 (defn wrap-datomic-doc [handler options]
   (let [options (options/prepare-options options)

@@ -8,35 +8,16 @@
 
 (enable-console-print!)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Formatting
+
 (def kw->label (comp string/capitalize name))
 
-(defn debug-pre [m]
-  [:pre {:style {:background    "#eee"
-                 :border-radius "10px"
-                 :font-family   "Fira Code"
-                 :font-size     "0.8em"
-                 :padding       "1em"
-                 :white-space   "pre-wrap"}}
-   (with-out-str (cljs.pprint/pprint m))])
+(def date-format 
+  (goog.i18n.DateTimeFormat. (.-MEDIUM_DATE goog.i18n.DateTimeFormat.Format)))
 
-(def date-formats
-  (let [f goog.i18n.DateTimeFormat.Format]
-    {:full-date       (.-FULL_DATE f)
-     :full-datetime   (.-FULL_DATETIME f)
-     :full-time       (.-FULL_TIME f)
-     :long-date       (.-LONG_DATE f)
-     :long-datetime   (.-LONG_DATETIME f)
-     :long-time       (.-LONG_TIME f)
-     :medium-date     (.-MEDIUM_DATE f)
-     :medium-datetime (.-MEDIUM_DATETIME f)
-     :medium-time     (.-MEDIUM_TIME f)
-     :short-date      (.-SHORT_DATE f)
-     :short-datetime  (.-SHORT_DATETIME f)
-     :short-time      (.-SHORT_TIME f)}))
-
-(defn format-date [date-format date]
-  (.format (goog.i18n.DateTimeFormat. (or (date-format date-formats) date-format))
-           (js/Date. date)))
+(defn format-date [date]
+  (.format date-format (js/Date. date)))
 
 (def number-format
   (goog.i18n.NumberFormat. goog.i18n.NumberFormat.Format.DECIMAL))
@@ -45,7 +26,7 @@
   (.format number-format number))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; core.async helpers
+;;; core.async
 
 (defn page-load-timeout [ms]
   (let [timeout-channel (timeout ms)]
@@ -70,3 +51,15 @@
                t     (js/setTimeout #(go (>! c' loc)) delay)]
            (recur (js/Date.) t)))))
    c'))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; pretty print data
+
+(defn debug-pre [m]
+  [:pre {:style {:background    "#eee"
+                 :border-radius "10px"
+                 :font-family   "Fira Code"
+                 :font-size     "0.8em"
+                 :padding       "1em"
+                 :white-space   "pre-wrap"}}
+   (with-out-str (cljs.pprint/pprint m))])

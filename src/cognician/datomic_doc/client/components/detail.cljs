@@ -1,9 +1,6 @@
 (ns cognician.datomic-doc.client.components.detail
-  (:require [cljs.core.async :refer [chan put!]]
-            [clojure.string :as string]
-            [datascript.core :as d]
+  (:require [clojure.string :as string]
             [rum.core :as rum]
-            [cognician.datomic-doc.client.common :as common]
             [cognician.datomic-doc.client.util :as util]))
 
 (rum/defc metadata [lookup-type 
@@ -11,9 +8,9 @@
                             db/isComponent db/noHistory db/fulltext deprecated?]}
                     {:keys [created last-touched datom-count]}]
   [:.box.metadata
-   [:strong "Created: "] (util/format-date :medium-date created) ". "
+   [:strong "Created: "] (util/format-date created) ". "
    (when last-touched
-     (list [:strong "Last touched: "] (util/format-date :medium-date last-touched) ". "))
+     (list [:strong "Last touched: "] (util/format-date last-touched) ". "))
    (when datom-count
      (list [:strong "Appearances: "] (util/format-number datom-count) "."))
    (when (and (= :enum lookup-type) deprecated?)
@@ -47,8 +44,7 @@
       [:nav.nav
        [:.nav-left.nav-menu
         [:span.nav-item
-         [:a.button {:href uri-prefix}
-          "Search"]
+         [:a.button {:href uri-prefix} "Search"]
          (when (contains? #{:schema :enum} lookup-type)
            (let [query (str (namespace lookup-ref) "/")]
              [:a.button {:href (str uri-prefix "?query=" query)}
@@ -58,8 +54,7 @@
          [:a.button {:href (str uri "/edit")}
           "Edit :db/doc"]]]]
       [:h1.title 
-       [:strong (util/kw->label lookup-type)]
-       " "
+       [:strong (util/kw->label lookup-type)] " "
        (if (= :entity lookup-type)
          (string/join " " lookup-ref)
          (str lookup-ref))]

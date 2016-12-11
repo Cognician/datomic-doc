@@ -5,9 +5,6 @@
             [rum.core :as rum])
   (:import goog.dom.query))
 
-(def COMPONENT-ATTR "data-component")
-(def COMPONENT-DOM-QUERY (str "[" COMPONENT-ATTR "]"))
-
 (defn read-edn-from-inner-script-tag [element]
   (some->> (dom/getElementsByTagNameAndClass "script" nil element)
            array-seq
@@ -17,9 +14,10 @@
 
 (defn prepare-datascript-db [state]
   (if-let [{:keys [datoms schema]} (:db state)]
-    (let [datoms (map (partial apply d/datom) datoms)]
-      (assoc state :db @(d/conn-from-datoms datoms schema)))
+    (assoc state :db @(d/conn-from-datoms (map (partial apply d/datom) datoms) schema))
     state))
+
+(def COMPONENT-ATTR "data-component")
 
 (defn start-component! [common-state component-type->fn element]
   (when-let [component-fn (get component-type->fn
@@ -27,6 +25,8 @@
     (when-let [state (read-edn-from-inner-script-tag element)]
       (swap! common-state merge (prepare-datascript-db state)))
     (rum/mount (component-fn common-state) element)))
+
+(def COMPONENT-DOM-QUERY (str "[" COMPONENT-ATTR "]"))
 
 (defn start-all-components! [common-state component-type->fn]
   (doseq [element (array-seq (goog.dom.query COMPONENT-DOM-QUERY))]
