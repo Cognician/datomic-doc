@@ -7,7 +7,8 @@
             [org.httpkit.server :as http]
             [ring.middleware.resource :as resource]))
 
-(def db-uri "datomic:free://localhost:4334/cognician")
+;;(def db-uri "datomic:free://localhost:4334/cognician")
+(def db-uri "datomic:free://localhost:4334/mbrainz-1968-1973")
 (def conn (partial d/connect db-uri))
 (def db (comp d/db conn))
 

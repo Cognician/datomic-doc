@@ -30,7 +30,7 @@
         [:span.tag.is-warning "Many"])
       (when unique
         [:span.tag.is-info "Unique: " (util/kw->label unique)])
-      (when (and (not unique) index)
+      (when (and index (not unique) (not= valueType :db.type/ref))
         [:span.tag "Indexed"])
       (when isComponent
         [:span.tag "Component"])
