@@ -3,7 +3,7 @@
             [clojure.pprint :as pprint]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
-            [cognician.datomic-doc.datomic :as datomic]
+            [cognician.datomic-doc.datomic :as datomic :refer [as-conn as-db]]
             [ring.util.response :as response]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,22 +28,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
 
-(defn search [{{:keys [db options] :as context} ::dd/context :as request}]
+(defn search [{{:keys [::dd/deprecated-attr ::dd/js-to-load] :as context} ::dd/context
+               db-uri :db-uri}] 
   (->> (client-component
         "search"
-        {:options (client-options options)
-         :db
-         {:schema {:db/ident {:db/unique :db.unique/identity}}
-          :datoms (datomic/all-idents-as-datoms db (::dd/deprecated-attr options))}})
-       (layout "index" (::dd/js-to-load options))))
+        {:options (client-options context)
+         :db {:schema {:db/ident {:db/unique :db.unique/identity}}
+              :datoms (datomic/all-idents-as-datoms (as-db db-uri) deprecated-attr)}})
+       (layout "index" js-to-load)))
 
-(defn detail [{{:keys [options] :as context} ::dd/context :as request}]
+(defn detail [{{:keys [::dd/js-to-load] :as context} ::dd/context}]
   (->> (client-component
         "detail"
-        (merge {:options (client-options options)}
-               (select-keys context 
-                            [:lookup-type :lookup-ref :entity :entity-stats :uri])))
-       (layout "index" (::dd/js-to-load options))))
+        (merge {:options (client-options context)}
+               (select-keys context [:lookup-type :lookup-ref :entity :entity-stats :uri])))
+       (layout "index" js-to-load)))
 
 (defn edit [request]
   (layout "mdp" (get-in request [::dd/context :entity :db/doc])))

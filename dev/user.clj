@@ -11,8 +11,8 @@
 (def db-uri 
   "Fill in your own database uri here, or if you just want to demo, 
 follow the steps at https://github.com/Datomic/mbrainz-sample#getting-the-data 
-to download this data set."
-  "datomic:free://localhost:4334/mbrainz-1968-1973")
+to download a data set."
+  "datomic:free://localhost:4334/*")
 
 (def handler
   (ring/wrap-datomic-doc

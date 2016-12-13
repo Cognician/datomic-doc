@@ -3,6 +3,28 @@
             [clojure.walk :as walk]
             [datomic.api :as d]))
 
+(defprotocol DatomicConnection
+  (as-conn [_]))
+
+(extend-protocol DatomicConnection
+  datomic.Connection
+  (as-conn [c] c)
+  java.lang.String
+  (as-conn [db-uri] (d/connect db-uri))
+  datomic.db.Db
+  (as-conn [db] (as-conn (:id db))))
+
+(defprotocol DatabaseReference
+  (as-db [_]))
+
+(extend-protocol DatabaseReference
+  datomic.db.Db
+  (as-db [db] db)
+  datomic.Connection
+  (as-db [conn] (d/db conn))
+  java.lang.String
+  (as-db [db-uri] (as-db (as-conn db-uri))))
+
 (def pull-spec
   [:db/id
    :db/doc

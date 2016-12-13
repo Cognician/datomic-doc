@@ -2,7 +2,7 @@
   (:require [bidi.ring :as bidi-ring]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
-            [cognician.datomic-doc.datomic :as datomic]
+            [cognician.datomic-doc.datomic :as datomic :refer [as-conn as-db]]
             [cognician.datomic-doc.options :as options]
             [cognician.datomic-doc.views :as views]
             [datomic.api :as d]
@@ -12,17 +12,28 @@
 (defn wrap-with-context [options handler]
   (fn [request]
     (-> (update request ::dd/context merge
-                (let [conn (d/connect (::dd/datomic-uri options))]
-                  {:conn conn
-                   :db (d/db conn)
-                   :options (select-keys options [::dd/uri-prefix
-                                                  ::dd/deprecated-attr
-                                                  ::dd/annotate-tx-fn
-                                                  ::dd/js-to-load])}))
+                (select-keys options 
+                             [::dd/datomic-uri
+                              ::dd/datomic-uris
+                              ::dd/uri-prefix
+                              ::dd/deprecated-attr
+                              ::dd/annotate-tx-fn
+                              ::dd/js-to-load]))
+        handler)))
+
+(defn wrap-with-db [options handler]
+  (fn [request]
+    (-> (assoc request :db-uri 
+               (if-let [db-name (get-in request [:route-params :db-name])]
+                  (get-in options [::dd/datomic-uris db-name])
+                  (::dd/datomic-uri options)))
         handler)))
 
 (defn wrap-with-entity [options handler]
-  (fn [{{:keys [lookup-type ns name value]} :route-params uri :uri :as request}]
+  (fn [{{:keys [lookup-type ns name value]} :route-params 
+        uri :uri 
+        db-uri :db-uri 
+        :as request}]
     (let [lookup-type (keyword lookup-type)
           name (string/replace name "__Q" "?")
           lookup-attr (if ns
@@ -31,7 +42,7 @@
           lookup-ref  (case lookup-type
                         :ident lookup-attr
                         :entity [lookup-attr value])
-          db (get-in request [::dd/context :db])
+          db (as-db db-uri)
           lookup-type (case lookup-type
                         :ident (datomic/classify-ident db lookup-ref)
                         :entity :entity)
@@ -47,16 +58,22 @@
             handler)))))
 
 (defn make-routes [uri-prefix options]
-  (let [with-entity (partial wrap-with-entity options)]
+  (let [with-db (partial wrap-with-db options)
+        with-entity (partial wrap-with-entity options)
+        with-middleware #(bidi-ring/wrap-middleware % (comp with-entity with-db))
+        routes {:get {"" (bidi-ring/wrap-middleware views/search with-db)
+                      #{["/" [#"ident"  :lookup-type] "/" :ns "/" :name]
+                        ["/" [#"ident"  :lookup-type]         "/" :name]
+                        ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
+                        ["/" [#"entity" :lookup-type]         "/" :name "/" [#"[^/]+" :value]]}
+                      {""      (with-middleware views/detail)
+                       "/edit" (with-middleware views/edit)}}}]
     [uri-prefix
-     {:get {"" views/search
-            #{["/" [#"ident"  :lookup-type] "/" :ns "/" :name]
-              ["/" [#"ident"  :lookup-type]         "/" :name]
-              ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
-              ["/" [#"entity" :lookup-type]         "/" :name "/" [#"[^/]+" :value]]}
-            {""      (bidi-ring/wrap-middleware views/detail with-entity)
-             "/edit" (bidi-ring/wrap-middleware views/edit   with-entity)}}}
-     "/cognician/datomic-doc" {:get #(resource/resource-request % ".")}]))
+     (if (::dd/datomic-uris options)
+       [["/" :db-name] routes]
+       routes)
+     "/cognician/datomic-doc" 
+     {:get #(resource/resource-request % ".")}]))
 
 (defn wrap-datomic-doc [handler options]
   (let [options (options/prepare-options options)
