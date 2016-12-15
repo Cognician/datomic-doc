@@ -3,6 +3,7 @@
 /lib/
 /out/
 /resources/cognician/datomic-doc/main.js
+/resources/cognician/datomic-doc/main.min.js
 /target/
 
 .lein-deps-sum
