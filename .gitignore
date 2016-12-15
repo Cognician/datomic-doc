@@ -2,8 +2,7 @@
 /classes/
 /lib/
 /out/
-resources/public/js
-resources/public/main.js
+/resources/cognician/datomic-doc/main.js
 /target/
 
 .lein-deps-sum

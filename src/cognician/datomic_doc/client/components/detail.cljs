@@ -37,17 +37,17 @@
         [:span.tag "Full-text Indexed"])))])
 
 (rum/defc detail < rum/reactive [state]
-  (let [{:keys [options lookup-type lookup-ref entity entity-stats uri]} (rum/react state)
-        {:keys [:cognician.datomic-doc/uri-prefix]} options]
+  (let [{:keys [search-uri-prefix lookup-type lookup-ref entity entity-stats uri]} (rum/react state)]
     [:div.container
      [:section.section
+      [:h1.title "Datomic Doc"]
       [:nav.nav
        [:.nav-left.nav-menu
         [:span.nav-item
-         [:a.button {:href uri-prefix} "Search"]
+         [:a.button {:href search-uri-prefix} "Search"]
          (when (contains? #{:schema :enum} lookup-type)
            (let [query (str (namespace lookup-ref) "/")]
-             [:a.button {:href (str uri-prefix "?query=" query)}
+             [:a.button {:href (str search-uri-prefix "?query=" query)}
               "Search \"" query "\""]))]]
        [:.nav-right.nav-menu
         [:span.nav-item

@@ -23,7 +23,7 @@ Integration with your web service handler, using sensible "getting started" conf
 (def handler
   (-> routes
       (ddr/wrap-datomic-doc 
-       {::dd/datomic-uri "datomic:free://dd"
+       {::dd/datomic-uri "datomic:free://localhost:4334/*"
         ::dd/allow-write-fn (constantly true)}))
 ```
 
@@ -31,12 +31,15 @@ Integration with your web service handler, using sensible "getting started" conf
 
 Key | Type | Use
 ---|---|---
-`::dd/datomic-uri` | String | **Required.** Valid Datomic database URI.
+`::dd/datomic-uri` | String | **Required.** Valid Datomic database URI or wildcard URI. If wildcard, will use `datomic.api/get-database-names` to discover all databases and populate `::dd/datomic-uris`.
+`::dd/datomic-uris` | String | **Required.** Set of valid Datomic database URIs. If provided (or if wildcard uri is provided), a database list will be provided to the end user to choose from.
 `::dd/allow-write-pred` | Predicate function | Enables the full editing UI for the active user. A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automatically pass the check for `::dd/allow-read-pred`.
 `::dd/allow-read-pred` | Predicate function | Enables read-only UI for the active user. A function which takes the request and must return `true` if the active user may access the UI, but not alter anything.
 `::dd/annotate-tx-fn` | Function | Allows for Datomic Doc's transactions to be annotated. A function which takes the request and a map and must return that map with any attr/value pairs that should be transacted on the inbound transaction.
 `::dd/deprecated-attr` | Keyword | When asserted on any entity with `:db/ident` with a truthy value, will cause the UI to display a "Deprecated" notice for that entity. Also, fully deprecated _namespaces_ (where all attributes in a namespace are deprecated) will be listed separately in the namespace list.
 `::dd/uri-prefix` | String | The first segment of all routes served by Datomic Doc. Can't contain any `"/"` characters. Default value is `"dd"`.
+
+**Important note! One of ``::dd/datomic-uri` or ``::dd/datomic-uris` is required. **
 
 **Important note! If neither of the `::dd/allow-*-pred` options is provided, the UI will not be available to anyone**.
 
@@ -59,9 +62,13 @@ Key | Type | Use
 
 ## Features
 
+### Database list
+
+At `/dd`, an alphabetised list of all provided databases, in the case that more than one is configured.
+
 ### Search
 
-At `/dd`, a search UI, which searches all `:db/ident` values - schema, enums, partitions and database functions (Datomic's own idents are excluded). Results lead to [permalinks](#permalinks).
+At `/dd` (or `/dd/:database-name`), a search UI, which searches all `:db/ident` values - schema, enums, partitions and database functions (Datomic's own idents are excluded). Results lead to [permalinks](#permalinks).
 
 #### Examples:
 
@@ -77,7 +84,7 @@ Searches can be pre-filled via a query string parameter `query`, e.g. `/dd?query
 
 #### Idents
 
-`/dd/ident/:name` or `/dd/ident/:namespace/:name` 
+`/dd/ident/:name` or `/dd/ident/:namespace/:name` (or `/dd/:database-name/ident/...`)
 
 ⟶ Entity by direct `:db/ident` lookup with: `:<[namespace/]name>`.
 
@@ -89,7 +96,7 @@ Searches can be pre-filled via a query string parameter `query`, e.g. `/dd?query
 
 #### Entities
 
-`/dd/entity/:name/:value` or `/dd/entity/:namespace/:name/:value` 
+`/dd/entity/:name/:value` or `/dd/entity/:namespace/:name/:value` (or `/dd/:database-name/entity/...`)
 
 ⟶ Entity by lookup ref lookup with: `[:<[namespace/]name> <value>]`. 
 This requires that the attr be `:db/unique` and that the value be of `:db/valueType` `:db.valueType/string`.

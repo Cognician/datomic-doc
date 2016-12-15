@@ -30,17 +30,17 @@
                 :compiler {:main cognician.datomic-doc.client
                            :compiler-stats true
                            :parallel-build true
-                           :asset-path "/dev"
-                           :output-to "target/js/main.js"
-                           :output-dir "target/js/dev"
+                           :asset-path "/cognician/datomic-doc/dev"
+                           :output-to "resources/cognician/datomic-doc/main.js"
+                           :output-dir "target/js/cognician/datomic-doc/dev"
                            :optimizations :none
                            :source-map-timestamp true}}
                {:id "main"
                 :source-paths ["src"]
                 :compiler {:compiler-stats true
                            :parallel-build true
-                           :asset-path "/main"
-                           :output-to "target/js/main.min.js"
+                           :asset-path "/cognician/datomic-doc"
+                           :output-to "resources/cognician/datomic-doc/main.min.js"
                            :output-dir "target/js/main"
                            :optimizations :advanced
                            :source-map-timestamp true}}]}

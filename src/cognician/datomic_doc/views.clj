@@ -1,5 +1,6 @@
 (ns cognician.datomic-doc.views
-  (:require [clojure.java.io :as io]
+  (:require [bidi.bidi :as bidi]
+            [clojure.java.io :as io]
             [clojure.pprint :as pprint]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
@@ -9,12 +10,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Helpers
 
+(def asset-prefix "cognician/datomic-doc/")
+
 (defn layout [template-name js-to-load & content]
-  (-> (str "cognician/datomic-doc/" template-name ".html")
+  (-> (str asset-prefix template-name ".html")
       io/resource
       slurp
       (string/replace "#content#" (apply str content))
-      (string/replace "#js-to-load#" js-to-load)
+      (string/replace "#js-to-load#" (str "/" asset-prefix js-to-load))
       response/response))
 
 (def component-template
@@ -22,25 +25,34 @@
 
 (def client-component (partial format component-template))
 
-(defn client-options [options]
-  (select-keys options [::dd/uri-prefix]))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
 
-(defn search [{{:keys [::dd/deprecated-attr ::dd/js-to-load] :as context} ::dd/context
-               db-uri :db-uri}] 
+(defn database-list [{{:keys [::dd/js-to-load ::dd/datomic-uris] :as context} 
+                      ::dd/context}] 
   (->> (client-component
-        "search"
-        {:options (client-options context)
-         :db {:schema {:db/ident {:db/unique :db.unique/identity}}
-              :datoms (datomic/all-idents-as-datoms (as-db db-uri) deprecated-attr)}})
+        "database-list"
+        {:uri-prefix (::dd/uri-prefix context)
+         :databases datomic-uris})
        (layout "index" js-to-load)))
 
-(defn detail [{{:keys [::dd/js-to-load] :as context} ::dd/context}]
+(defn search [{{:keys [::dd/deprecated-attr ::dd/js-to-load 
+                       ::dd/multiple-databases? ::dd/uri-prefix]} ::dd/context
+               db-uri :db-uri
+               uri :uri}] 
+  (->> (client-component
+        "search"
+        (cond-> {:uri-prefix uri
+                 :db {:schema {:db/ident {:db/unique :db.unique/identity}}
+                      :datoms (datomic/all-idents-as-datoms (as-db db-uri) deprecated-attr)}}
+          multiple-databases? (assoc :databases-uri uri-prefix)))
+       (layout "index" js-to-load)))
+
+(defn detail [{{:keys [::dd/js-to-load] :as context} ::dd/context
+               uri :uri}]
   (->> (client-component
         "detail"
-        (merge {:options (client-options context)}
+        (merge {:search-uri-prefix (string/replace uri #"/(ident|entity).*" "")}
                (select-keys context [:lookup-type :lookup-ref :entity :entity-stats :uri])))
        (layout "index" js-to-load)))
 

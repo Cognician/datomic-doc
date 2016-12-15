@@ -3,16 +3,32 @@
             [clojure.walk :as walk]
             [datomic.api :as d]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; DB URIs, Connections and Database Values
+
+(declare as-db)
+
+(defprotocol DatomicUri
+  (as-uri [_]))
+
+(extend-protocol DatomicUri
+  java.lang.String
+  (as-uri [db-uri] db-uri)
+  datomic.Connection
+  (as-uri [conn] (as-uri (as-db conn)))
+  datomic.db.Db
+  (as-uri [db] (:id db)))
+
 (defprotocol DatomicConnection
   (as-conn [_]))
 
 (extend-protocol DatomicConnection
   datomic.Connection
-  (as-conn [c] c)
+  (as-conn [conn] conn)
   java.lang.String
   (as-conn [db-uri] (d/connect db-uri))
   datomic.db.Db
-  (as-conn [db] (as-conn (:id db))))
+  (as-conn [db] (as-conn (as-uri db))))
 
 (defprotocol DatabaseReference
   (as-db [_]))
@@ -24,6 +40,9 @@
   (as-db [conn] (d/db conn))
   java.lang.String
   (as-db [db-uri] (as-db (as-conn db-uri))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Fetch Entity
 
 (def pull-spec
   [:db/id
@@ -52,13 +71,8 @@
     (cond-> entity
       (get entity deprecated-attr) (assoc :deprecated? true))))
 
-(defn classify-ident [db lookup-ref]
-  (let [entity (d/entity db lookup-ref)]
-    (cond
-      (:db/valueType entity)          :schema
-      (:db.install/_partition entity) :partition
-      (:db/fn entity)                 :function
-      :else                           :enum)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Entity Stats
 
 (defn tx->tx-instant [db tx]
   (->> tx (d/entity db) :db/txInstant))
@@ -85,10 +99,21 @@
                  seq
                  count)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Datoms for Datascript
+
 (defn datomic-schema? [attr]
   (let [ns (str (namespace attr))]
     (or (string/starts-with? ns "db")
         (string/starts-with? ns "fressian"))))
+
+(defn classify-ident [db lookup-ref]
+  (let [entity (d/entity db lookup-ref)]
+    (cond
+      (:db/valueType entity)          :schema
+      (:db.install/_partition entity) :partition
+      (:db/fn entity)                 :function
+      :else                           :enum)))
 
 (defn expand-ident-datom [db deprecated-attr [e _ v]]
   (let [entity (d/entity db e)]

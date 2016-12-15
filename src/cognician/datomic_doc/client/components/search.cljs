@@ -10,7 +10,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Data preparation
 
-(defn namespace-list [db]
+(defn namespace-list-from-idents [db]
   (->> (d/datoms db :aevt :db/ident)
        (map (comp #(d/pull db '[*] %) :e))
        (filter (comp namespace :db/ident))
@@ -68,7 +68,7 @@
     :value       query
     :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}])
 
-(rum/defc namespace-list [options namespaces kind]
+(rum/defc namespace-list [uri-prefix namespaces kind]
   (let [namespace-count (count namespaces)]
     [:div {:key kind}
      [:h2.title
@@ -81,13 +81,12 @@
          [:ul.attr-list
           (for [[item _ types] col]
             [:li {:key item}
-             [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
-                            "?query=" item "/")}
+             [:a {:href (str uri-prefix "?query=" item "/")}
               item
               (when-not (contains? types :schema)
                 [:span.tag.is-small (util/kw->label (first types))])]])]])]]))
 
-(rum/defc result-list [options results]
+(rum/defc result-list [uri-prefix results]
   [:div
    [:.box (count results) " items found."] 
    (for [[namespace ident-entities] (->> results
@@ -101,7 +100,7 @@
                                (sort-by (juxt :deprecated? (comp name :db/ident))))
              :let [name (-> ident-entity :db/ident name)]]
          [:li {:key ident-entity}
-          [:a {:href (str (:cognician.datomic-doc/uri-prefix options)
+          [:a {:href (str uri-prefix
                           "/ident"
                           (when-not (nil? namespace)
                             (str "/" namespace))
@@ -120,17 +119,23 @@
                    (swap! (first (:rum/args state)) assoc :query query))
                  state)}
   [state]
-  (let [{:keys [options db query]} (rum/react state)]
+  (let [{:keys [uri-prefix databases-uri db query]} (rum/react state)]
     [:div.container
      [:section.section
+      [:h1.title "Datomic Doc"]
+      (when databases-uri
+        [:nav.nav
+         [:.nav-left.nav-menu
+          [:span.nav-item
+           [:a.button {:href databases-uri} "Databases"]]]])
       (search-input query)
       (if query
-        (result-list options (search-idents db query))
-        (let [namespaces (namespace-list db)]
+        (result-list uri-prefix (search-idents db query))
+        (let [namespaces (namespace-list-from-idents db)]
           (list
-           (rum/with-key (namespace-list options (remove second namespaces) :active)
+           (rum/with-key (namespace-list uri-prefix (remove second namespaces) :active)
                          :active)
            [:br] [:br]
-           (rum/with-key (namespace-list options (filter second namespaces) :deprecated)
+           (rum/with-key (namespace-list uri-prefix (filter second namespaces) :deprecated)
                          :deprecated))))]]))
         

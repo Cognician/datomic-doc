@@ -25,3 +25,7 @@ input#search {
 .attr-list li span.tag {
   margin-left: 0.7em;
 }
+
+.db-list .button {
+  margin: 0.4em 0.6em;
+}
