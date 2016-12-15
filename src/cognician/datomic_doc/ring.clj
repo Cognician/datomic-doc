@@ -104,9 +104,7 @@
                     (allow-read-pred request))
               (dd-handler (assoc request ::dd/context
                                  {:read-only? (not (allow-write-pred request))}))
-              {:status 403
-               :headers {"Content-Type" "text/plain; charset=utf-8"}
-               :body "Access denied"}))
+              views/access-denied-response))
           (when (string/starts-with? uri (str "/" views/asset-prefix))
             (response/resource-response uri))
           (handler request)))))

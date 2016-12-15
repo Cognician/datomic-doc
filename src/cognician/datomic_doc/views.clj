@@ -10,6 +10,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Helpers
 
+(def access-denied-response
+  {:status 403
+   :headers {"Content-Type" "text/plain; charset=utf-8"}
+   :body "Access denied"})
+
 (def asset-prefix "cognician/datomic-doc/")
 
 (defn layout [template-name js-to-load & content]
@@ -48,13 +53,16 @@
           multiple-databases? (assoc :databases-uri uri-prefix)))
        (layout "index" js-to-load)))
 
-(defn detail [{{:keys [::dd/js-to-load] :as context} ::dd/context
+(defn detail [{{:keys [::dd/js-to-load read-only?] :as context} ::dd/context
                uri :uri}]
   (->> (client-component
         "detail"
-        (merge {:search-uri-prefix (string/replace uri #"/(ident|entity).*" "")}
+        (merge {:search-uri-prefix (string/replace uri #"/(ident|entity).*" "")
+                :read-only? read-only?}
                (select-keys context [:lookup-type :lookup-ref :entity :entity-stats :uri])))
        (layout "index" js-to-load)))
 
-(defn edit [request]
-  (layout "mdp" (get-in request [::dd/context :entity :db/doc])))
+(defn edit [{{:keys [read-only?]} ::dd/context :as request}]
+  (if read-only?
+    access-denied-response
+    (layout "mdp" (get-in request [::dd/context :entity :db/doc]))))

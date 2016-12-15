@@ -37,7 +37,8 @@
         [:span.tag "Full-text Indexed"])))])
 
 (rum/defc detail < rum/reactive [state]
-  (let [{:keys [search-uri-prefix lookup-type lookup-ref entity entity-stats uri]} (rum/react state)]
+  (let [{:keys [uri search-uri-prefix read-only? lookup-type lookup-ref 
+                entity entity-stats]} (rum/react state)]
     [:div.container
      [:section.section
       [:h1.title "Datomic Doc"]
@@ -49,10 +50,11 @@
            (let [query (str (namespace lookup-ref) "/")]
              [:a.button {:href (str search-uri-prefix "?query=" query)}
               "Search \"" query "\""]))]]
-       [:.nav-right.nav-menu
-        [:span.nav-item
-         [:a.button {:href (str uri "/edit")}
-          "Edit :db/doc"]]]]
+       (when-not read-only?
+         [:.nav-right.nav-menu
+          [:span.nav-item
+           [:a.button {:href (str uri "/edit")}
+            "Edit :db/doc"]]])]
       [:h1.title 
        [:strong (util/kw->label lookup-type)] " "
        (if (= :entity lookup-type)
