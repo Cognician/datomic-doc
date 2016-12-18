@@ -2,19 +2,156 @@
 
 Manage `:db/doc` string values for any addressable entity in a Datomic database.
 
-Typically used to manage doc-strings for schema and enumeration values, but can be used to document arbitrary entities — if those entities have a valid unique string attribute.
-
-- [Installation](#installation)
-- [Configuration](#configuration)
+- [Rationale](#rational)
 - [Features](#features)
   - [Database list](#database-list)
   - [Search](#search)
   - [Permalinks](#permalinks)
   - [Metadata display](#metadata)
   - [Doc-string Editor](#doc-string-editor)
+- [Installation](#installation)
+- [Configuration](#configuration)
 - [Contributing](#contributing)
 - [Development](#development)
 - [License](#license)
+
+------
+
+## Rationale
+
+Why put documentation somewhere separate when it can live with the very things it's documenting; thereby benefiting from an identical information architecture and all the great facilities that Datomic offers?
+
+This tool, designed as a plug-and-play Ring middleware, aims to bring this idea to life.
+
+Typically used to manage doc-strings for schema and enumeration values, but can be used to document arbitrary entities — if those entities have a valid unique string attribute (so, a [lookup ref](http://blog.datomic.com/2014/02/datomic-lookup-refs.html)).
+
+Possible applications:
+- Document schema, database functions, enums, and database partitions.
+- Document key entities in your database:
+  - Products
+  - Clients
+  - Staff user accounts
+  - Configuration data
+  - Operational notes for a key client
+  - Operational notes for an API integration
+- Make entities specifically just to use in Datomic Doc:
+  - Foundational topics about your system, in a `:doc.<section>/topic` scheme.
+  - [`clojure.spec`](http://clojure.org/guides/spec) docs.
+
+You have total control (via predicates that run per request) over who can see and/or do what (assuming you already have a login system).
+
+The sky is the limit!
+
+------
+
+## Features
+
+### Database list
+
+At `/dd`, an alphabetised list of all provided databases, in the case that more than one is configured. Any namespace fully populated by non-schema idents will display their type as a tag -- one of `partition`, `function`, or `enum`. Leads to [Search](#search).
+
+![Database list](doc/database-list.png)
+
+### Search
+
+At `/dd` (or `/dd/:database-name`), a search UI, which searches all `:db/ident` values - schema, enums, partitions and database functions (Datomic's own idents are excluded). Results lead to [Permalinks](#permalinks).
+
+##### Namespace list
+
+![Namespace list](doc/namespace-list.png)
+
+##### Searching for namespace
+
+![Searching for namespace](doc/namespace-search.png)
+
+#### Examples:
+
+Query | Search result | Examples
+---|---|---
+`user` | Presence of query in namespace and name of ident. | `:user/email`, `:group/users`
+`user/` | Exact match of query to namespace of ident. | `:user/email`, `:user/password`
+`/user` | Presence of query in name of ident. | `:group/users`, `:license/max-user-count`
+
+Searches can be pre-filled via a query string parameter `query`, e.g. `/dd?query=user`.
+
+### Permalinks
+
+#### Idents
+
+`/dd/ident/:name` or `/dd/ident/:namespace/:name` (or `/dd/:database-name/ident/...`)
+
+⟶ Entity by direct `:db/ident` lookup with: `:<[namespace/]name>`.
+
+##### Examples
+
+ `/dd/ident/unused` ⟶ `:unused` 
+
+ `/dd/ident/db/doc` ⟶ `:db/doc`
+
+#### Entities
+
+`/dd/entity/:name/:value` or `/dd/entity/:namespace/:name/:value` (or `/dd/:database-name/entity/...`)
+
+⟶ Entity by lookup ref lookup with: `[:<[namespace/]name> <value>]`. 
+
+This requires that the attr be `:db/unique` and that the value be of `:db/valueType` `:db.valueType/string`.
+
+##### Examples
+
+ `/dd/entity/tag/value` ⟶ `[:tag "value"]` 
+
+ `/dd/entity/user/email/no@spam.thanks` ⟶ `[:user/email "no@spam.thanks"]`
+
+**Note:** Question mark characters are represented as `__Q` in permalinks: 
+- e.g. `:user/opt-in?` ⟶ `/dd/ident/user/opt-in__Q`.
+
+### Metadata
+
+![Details](doc/detail.png)
+
+#### All entities
+
+- Created timestamp.
+- Last used timestamp.
+- Usage count (by count of datoms).
+
+#### Schema only
+
+- Type.
+- Cardinality.
+- Uniqueness.
+- Flags:
+  - Indexed (only show if not also Unique).
+  - No History.
+  - Is Component.
+  - Fulltext.
+
+#### Schema and enum values only
+
+- Deprecated — if deprecated, indicate this.
+- A link to search for all other entities sharing this a namespace with this entity; i.e. a search for `<namespace>/`.
+
+### Doc-string Editor
+
+![Edit](doc/edit.png)
+
+Append `/edit` to any [permalink](#permalinks), e.g. `/dd/ident/db/doc/edit`.
+
+Loads the entity's `:db/doc` string into the <https://github.com/tylingsoft/markdown-plus> Markdown editor.
+
+Active user needs to satisfy `::dd/allow-write-pred` predicate.
+
+#### Notable 'Markdown Plus' features include:
+
+Try it out for yourself with its online demo: <http://mdp.tylingsoft.com/>.
+
+- Real-time HTML preview, with scroll lock
+- Clojure syntax highlighting
+- [Github-flavoured markdown](https://help.github.com/articles/github-flavored-markdown/)
+- [Table of contents](http://mdp.tylingsoft.com/#table-of-contents)
+- [Flowcharts](http://mdp.tylingsoft.com/#flowchart)
+- [Sequence diagrams](http://mdp.tylingsoft.com/#sequence-diagram)
+- [Charts](http://mdp.tylingsoft.com/#charts)
 
 ------
 
@@ -26,7 +163,7 @@ Leiningen or boot coordinates:
 [cognician/datomic-doc "0.1.0"]
 ```
 
-Integration with your web service handler, using sensible "getting started" configuration:
+Integration with your web service handler, using a sensible "getting started" configuration:
 
 ```clojure
 (require '[cognician.datomic-doc :as dd] 
@@ -38,6 +175,8 @@ Integration with your web service handler, using sensible "getting started" conf
        {::dd/datomic-uri "datomic:free://localhost:4334/*"
         ::dd/allow-write-fn (constantly true)}))
 ```
+
+------
 
 ## Configuration
 
@@ -67,6 +206,22 @@ Key | Type
 `::dd/allow-write-pred` | Predicate function
 
 Enables the full editing UI for the active user. A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automatically pass the check for `::dd/allow-read-pred`.
+
+Requests maps include whatever context is available for the route the user is attempting: 
+
+- `:options` for the configured options (with any wildcard database uri expanded to a full database list).
+- `:routes` for the route table, which may include routing for multiple databases.
+- `:db-uri` for the active database - either the only configured database, or the user-selected database when multiple databases are in use.
+- `:entity` with the data necessary to render the detail and edit views.
+
+For detail and edit views, to access the entity the user is viewing:
+
+```clojure
+(datomic.api/entity (d/db (d/connect (:db-uri request))) 
+                    (get-in request [:entity :lookup-ref]))
+```
+
+It should be possible to implement a fine-grained ACL with these two predicates and this context.
 
 Key | Type
 ---|---|---
@@ -116,98 +271,6 @@ The first segment of all routes served by Datomic Doc. Default value is `"dd"`.
 
 ------
 
-## Features
-
-### Database list
-
-At `/dd`, an alphabetised list of all provided databases, in the case that more than one is configured. Any namespace fully populated by non-schema idents will display their type as a tag -- one of `partition`, `function`, or `enum`. Leads to [Search](#search).
-
-### Search
-
-At `/dd` (or `/dd/:database-name`), a search UI, which searches all `:db/ident` values - schema, enums, partitions and database functions (Datomic's own idents are excluded). Results lead to [Permalinks](#permalinks).
-
-#### Examples:
-
-Query | Search result | Examples
----|---|---
-`user` | Presence of query in namespace and name of ident. | `:user/email`, `:group/users`
-`user/` | Exact match of query to namespace of ident. | `:user/email`, `:user/password`
-`/user` | Presence of query in name of ident. | `:group/users`, `:license/max-user-count`
-
-Searches can be pre-filled via a query string parameter `query`, e.g. `/dd?query=user`.
-
-### Permalinks
-
-#### Idents
-
-`/dd/ident/:name` or `/dd/ident/:namespace/:name` (or `/dd/:database-name/ident/...`)
-
-⟶ Entity by direct `:db/ident` lookup with: `:<[namespace/]name>`.
-
-##### Examples
-
- `/dd/ident/unused` ⟶ `:unused` 
-
- `/dd/ident/db/doc` ⟶ `:db/doc`
-
-#### Entities
-
-`/dd/entity/:name/:value` or `/dd/entity/:namespace/:name/:value` (or `/dd/:database-name/entity/...`)
-
-⟶ Entity by lookup ref lookup with: `[:<[namespace/]name> <value>]`. 
-This requires that the attr be `:db/unique` and that the value be of `:db/valueType` `:db.valueType/string`.
-
-##### Examples
-
- `/dd/entity/tag/value` ⟶ `[:tag "value"]` 
-
- `/dd/entity/user/email/no@spam.thanks` ⟶ `[:user/email "no@spam.thanks"]`
-
-**Note:** Question mark characters are represented as `__Q` in permalinks: 
-- e.g. `:user/opt-in?` ⟶ `/dd/ident/user/opt-in__Q`.
-
-### Metadata
-
-#### All entities
-
-- Created timestamp.
-- Last used timestamp.
-- Usage count (by count of datoms).
-
-#### Schema only
-
-- Type.
-- Cardinality.
-- Uniqueness.
-- Flags:
-  - Indexed (only show if not also Unique).
-  - No History.
-  - Is Component.
-  - Fulltext.
-
-#### Schema and enum values only
-
-- Deprecated — if deprecated, indicate this.
-- A link to search for all other entities sharing this a namespace with this entity; i.e. a search for `<namespace>/`.
-
-### Doc-string Editor
-
-Append `/edit` to any [permalink](#permalinks), e.g. `/dd/ident/db/doc/edit`.
-
-Loads the entity's `:db/doc` string into the <https://github.com/tylingsoft/markdown-plus> Markdown editor — online demo: <http://mdp.tylingsoft.com/>. 
-
-#### Notable features include:
-
-- Real-time HTML preview, with scroll lock
-- Clojure syntax highlighting
-- [Github-flavoured markdown](https://help.github.com/articles/github-flavored-markdown/)
-- [Table of contents](http://mdp.tylingsoft.com/#table-of-contents)
-- [Flowcharts](http://mdp.tylingsoft.com/#flowchart)
-- [Sequence diagrams](http://mdp.tylingsoft.com/#sequence-diagram)
-- [Charts](http://mdp.tylingsoft.com/#charts)
-
-------
-
 ## Contributing
 
 Pull requests are welcome!
@@ -228,6 +291,10 @@ Then visit `http://localhost:8080/dd`.
 
 ## License
 
-Copyright © Cognician Software (Pty) Ltd
+Copyright Cognician Software (Pty) Ltd.
 
 Distributed under the Eclipse Public License, the same as Clojure.
+
+[Markdown Plus](https://github.com/tylingsoft/markdown-plus) copyright [Tylingsoft](http://tylingsoft.com/), distributed under the MIT license.
+
+[Bulma](http://bulma.io/) copyright [Jeremy Thomas](http://jgthms.com/), distributed under the MIT license.

@@ -5,11 +5,11 @@
 (rum/defc database-list [state]
   (let [{:keys [routes databases]} @state]
     [:div.container
-     [:section.section.db-list 
+     [:section.section.db-list
       [:h1.title "Datomic Doc"]
       (for [[db-name db-uri] (sort-by first databases)]
         [:a.button.is-large
-         {:key db-name
-          :href (util/path-for routes :search {:db-name db-name})
+         {:key   db-name
+          :href  (util/path-for routes :search {:db-name db-name})
           :title db-uri}
          db-name])]]))

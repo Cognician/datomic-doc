@@ -3,7 +3,6 @@
             [clojure.spec :as s]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
-            [cognician.datomic-doc.datomic :as datomic]
             [cognician.datomic-doc.spec :as spec]
             [datomic.api :as d]))
 
@@ -42,12 +41,12 @@
 
 (def wildcard-uri? (partial re-find #"^datomic:(.*)/\*$"))
 
-(defn maybe-set-multiple-databases? [{:keys [::dd/datomic-uri ::dd/datomic-uris] 
-                                      :as options}]
+(defn maybe-set-multiple-databases? [{:keys [::dd/datomic-uri ::dd/datomic-uris]
+                                      :as   options}]
   (let [wildcard-uri? (and datomic-uri (wildcard-uri? datomic-uri))]
     (if (or datomic-uris wildcard-uri?)
       (cond-> options
-        true (assoc ::dd/multiple-databases? true)
+        true          (assoc ::dd/multiple-databases? true)
         wildcard-uri? (assoc ::dd/wildcard-uri? true))
       options)))
 
@@ -62,7 +61,7 @@
 
 (defn expand-wildcard-uri [{:keys [::dd/datomic-uri] :as options}]
   (-> options
-      (assoc ::dd/datomic-uris 
+      (assoc ::dd/datomic-uris
              (into [] (map (partial str (string/replace datomic-uri #"\*$" "")))
                    (d/get-database-names datomic-uri)))
       (dissoc ::dd/datomic-uri)))
@@ -71,14 +70,14 @@
   (last (string/split db-uri #"/")))
 
 (defn key-database-uris [{:keys [::dd/datomic-uris] :as options}]
-  (assoc options ::dd/datomic-uris 
+  (assoc options ::dd/datomic-uris
          (into (sorted-map) (map (juxt db-uri->db-name identity))
                datomic-uris)))
 
-(defn maybe-prepare-database-uris [{:keys [::dd/multiple-databases? ::dd/wildcard-uri?] 
-                                    :as options}]
+(defn maybe-prepare-database-uris [{:keys [::dd/multiple-databases? ::dd/wildcard-uri?]
+                                    :as   options}]
   (if multiple-databases?
     (cond-> options
       wildcard-uri? expand-wildcard-uri
-      true key-database-uris)
+      true          key-database-uris)
     options))

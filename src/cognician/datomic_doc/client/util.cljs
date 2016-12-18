@@ -58,7 +58,7 @@
    c'))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; pretty print data
+;;; Pretty print data
 
 (defn debug-pre [m]
   [:pre {:style {:background    "#eee"

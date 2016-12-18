@@ -1,11 +1,10 @@
 (ns cognician.datomic-doc.client.components.search
   (:require [cljs.core.async :refer [chan put!]]
             [clojure.string :as string]
-            [datascript.core :as d]
-            [rum.core :as rum]
             [cognician.datomic-doc.client.common :as common]
             [cognician.datomic-doc.client.util :as util]
-            goog.Uri))
+            [datascript.core :as d]
+            [rum.core :as rum]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Data preparation
@@ -70,22 +69,23 @@
 
 (rum/defc namespace-list [routes route-params namespaces kind]
   (let [namespace-count (count namespaces)]
-    [:div.namespace-list {:key kind}
-     [:h2.title
-      (when (= :deprecated kind)
-        "Deprecated ")
-      "Namespaces (" namespace-count ")"]
-     [:.columns
-      (for [col (partition-all (js/Math.ceil (/ namespace-count 4)) namespaces)]
-        [:.column {:key col}
-         [:ul.attr-list
-          (for [[item _ types] col]
-            [:li {:key item}
-             [:a {:href (util/path-for routes :search-with-query
-                                       (assoc route-params :query (str item "/")))}
-              item
-              (when-not (contains? types :schema)
-                [:span.tag.is-small (util/kw->label (first types))])]])]])]]))
+    (when-not (zero? namespace-count)
+      [:div.namespace-list {:key kind}
+       [:h2.title
+        (when (= :deprecated kind)
+          "Deprecated ")
+        "Namespaces (" namespace-count ")"]
+       [:.columns
+        (for [col (partition-all (js/Math.ceil (/ namespace-count 4)) namespaces)]
+          [:.column {:key col}
+           [:ul.attr-list
+            (for [[item _ types] col]
+              [:li {:key item}
+               [:a {:href (util/path-for routes :search-with-query
+                                         (assoc route-params :query (str item "/")))}
+                item
+                (when-not (contains? types :schema)
+                  [:span.tag.is-small (util/kw->label (first types))])]])]])]])))
 
 (rum/defc result-list [routes route-params results]
   [:div

@@ -128,9 +128,9 @@
                  (mapcat (partial expand-ident-datom db deprecated-attr)))
         (d/datoms db :aevt :db/ident)))
 
-(defn datascript-db [db-uri {:keys [::dd/deprecated-attr ::dd/multiple-databases? 
+(defn datascript-db [db-uri {:keys [::dd/deprecated-attr ::dd/multiple-databases?
                                     ::dd/uri-prefix]}]
   (cond-> {:db {:schema {:db/ident {:db/unique :db.unique/identity}}
                 :datoms (all-idents-as-datoms (as-db db-uri) deprecated-attr)}}
     multiple-databases? (assoc :multiple-databases? true)))
- 
+

@@ -8,10 +8,10 @@
             [ring.middleware.resource :as resource]
             [ring.util.response :as response]))
 
-(def db-uri 
-  "Fill in your own database uri here, or if you just want to demo, 
-follow the steps at https://github.com/Datomic/mbrainz-sample#getting-the-data 
-to download a data set."
+(def db-uri
+  "Fill in your own database uri here, or if you just want to demo,
+  follow the steps at https://github.com/Datomic/mbrainz-sample#getting-the-data
+  to download a data set."
   "datomic:free://localhost:4334/*")
 
 (def config
