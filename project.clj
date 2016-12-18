@@ -1,5 +1,5 @@
 (defproject cognician/datomic-doc "0.1.0"
-  :description "Markdown-based documentation editor for Datomic entities, particularly schema."
+  :description "Markdown-based documentation editor for Datomic entities."
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [clojure-future-spec "1.9.0-alpha14"]
                  [bidi "2.0.14" :exclusions [ring/ring-core]]
@@ -17,7 +17,8 @@
                [org.clojure/clojurescript "1.9.293"]
                [rum "0.10.7"]
                [datascript "0.15.5"]
-               ;; datomic brings in guava 18.0, which is incompatible with clojurescript
+               ;; dependencies are fun
+               ;; datomic brings in guava 18.0, which is incompatible with cljs
                [com.google.guava/guava "19.0"]]
               :plugins [[lein-cljsbuild "1.1.5" :exclusions [org.clojure/clojure]]
                         [lein-figwheel "0.5.8" :exclusions [org.clojure/clojure]]]

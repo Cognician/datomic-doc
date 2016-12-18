@@ -48,7 +48,7 @@ The sky is the limit!
 
 ### Database list
 
-At `/dd`, an alphabetised list of all provided databases, in the case that more than one is configured. Any namespace fully populated by non-schema idents will display their type as a tag -- one of `partition`, `function`, or `enum`. Leads to [Search](#search).
+At `/dd`, an alphabetised list of all provided databases, in the case that more than one is configured. Leads to [Search](#search).
 
 ![Database list](doc/database-list.png)
 
@@ -58,13 +58,11 @@ At `/dd` (or `/dd/:database-name`), a search UI, which searches all `:db/ident` 
 
 ##### Namespace list
 
+Any namespace fully populated by non-schema idents will display their type as a tag -- one of `partition`, `function`, or `enum`.
+
 ![Namespace list](doc/namespace-list.png)
 
-##### Searching for namespace
-
-![Searching for namespace](doc/namespace-search.png)
-
-#### Examples:
+#### Search examples:
 
 Query | Search result | Examples
 ---|---|---
@@ -72,7 +70,9 @@ Query | Search result | Examples
 `user/` | Exact match of query to namespace of ident. | `:user/email`, `:user/password`
 `/user` | Presence of query in name of ident. | `:group/users`, `:license/max-user-count`
 
-Searches can be pre-filled via a query string parameter `query`, e.g. `/dd?query=user`.
+##### Searching for namespace
+
+![Searching for namespace](doc/namespace-search.png)
 
 ### Permalinks
 
@@ -163,6 +163,10 @@ Leiningen or boot coordinates:
 [cognician/datomic-doc "0.1.0"]
 ```
 
+**Note**: Datomic Doc expects you to have a valid Datomic peer library in your project.
+
+**Note**: Datomic Doc makes use of Clojure 1.8 and <https://github.com/tonsky/clojure-future-spec> to access the new spec capabilities coming in Clojure 1.9. Once Clojure 1.9 is released, we'll switch to 1.9 and stop using `clojure-future-spec`.
+
 Integration with your web service handler, using a sensible "getting started" configuration:
 
 ```clojure
@@ -229,6 +233,8 @@ Key | Type
 
 Enables read-only UI for the active user. A function which takes the request and must return `true` if the active user may access the UI, but not alter anything.
 
+All the same context is available.
+
 Key | Type
 ---|---|---
 `::dd/annotate-tx-fn` | Function
@@ -274,6 +280,8 @@ The first segment of all routes served by Datomic Doc. Default value is `"dd"`.
 ## Contributing
 
 Pull requests are welcome!
+
+Development notes are kept in [TODO.md](https://github.com/Cognician/datomic-doc/tree/master/TODO.md).
 
 ------
 
