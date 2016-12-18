@@ -1,5 +1,5 @@
 (ns cognician.datomic-doc.client.common
-  (:require [cljs.core.async :refer [<! chan]]
+  (:require [cljs.core.async :refer [<! chan put!]]
             [cognician.datomic-doc.client.util :as util])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 

@@ -1,6 +1,7 @@
 (ns cognician.datomic-doc.datomic
   (:require [clojure.string :as string]
             [clojure.walk :as walk]
+            [cognician.datomic-doc :as dd]
             [datomic.api :as d]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,7 +78,7 @@
 (defn tx->tx-instant [db tx]
   (->> tx (d/entity db) :db/txInstant))
 
-(defn entity-stats [db lookup-type lookup-ref]
+(defn entity-stats [db lookup-type lookup-ref count-datoms?]
   (let [history-db (d/history db)
         index      (case lookup-type
                      :partition          nil
@@ -93,7 +94,7 @@
              (->> (d/datoms history-db index lookup-ref)
                   (transduce (map :tx) max 0)
                   (tx->tx-instant db)))
-      (contains? #{:schema :enum :entity} lookup-type)
+      (and count-datoms? (contains? #{:schema :enum :entity} lookup-type))
       (assoc :datom-count
              (-> (seq (d/datoms db index lookup-ref))
                  seq
@@ -126,3 +127,10 @@
   (into [] (comp (remove (comp datomic-schema? :v))
                  (mapcat (partial expand-ident-datom db deprecated-attr)))
         (d/datoms db :aevt :db/ident)))
+
+(defn datascript-db [db-uri {:keys [::dd/deprecated-attr ::dd/multiple-databases? 
+                                    ::dd/uri-prefix]}]
+  (cond-> {:db {:schema {:db/ident {:db/unique :db.unique/identity}}
+                :datoms (all-idents-as-datoms (as-db db-uri) deprecated-attr)}}
+    multiple-databases? (assoc :multiple-databases? true)))
+ 

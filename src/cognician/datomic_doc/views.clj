@@ -4,7 +4,7 @@
             [clojure.pprint :as pprint]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
-            [cognician.datomic-doc.datomic :as datomic :refer [as-conn as-db]]
+            [cognician.datomic-doc.datomic :as datomic]
             [ring.util.response :as response]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -17,52 +17,64 @@
 
 (def asset-prefix "cognician/datomic-doc/")
 
-(defn layout [template-name js-to-load & content]
-  (-> (str asset-prefix template-name ".html")
-      io/resource
-      slurp
-      (string/replace "#content#" (apply str content))
-      (string/replace "#js-to-load#" (str "/" asset-prefix js-to-load))
-      response/response))
+(def resource-file-contents (comp slurp io/resource))
+
+(defn template* [name]
+  (-> (resource-file-contents name)
+      (string/replace "#js-to-load#" (str "/" asset-prefix "main.min.js"))))
+
+(def template (memoize template*))
+
+(defn dev-template [name]
+  (-> (resource-file-contents name)
+      (string/replace "#js-to-load#" (str "/" asset-prefix "main.js"))))
+
+(defn layout [template-name {:keys [::dd/dev-mode?]} & content]
+  (let [template-name (str asset-prefix "/" template-name ".html")]
+    (-> (if dev-mode?
+          (dev-template template-name)
+          (template template-name))
+        (string/replace "#content#" (apply str content))
+        response/response)))
 
 (def component-template
   "<div data-component=\"%s\"><script type=\"application/edn\">%s</script></div>")
 
-(def client-component (partial format component-template))
+(defn client-component [{:keys [::dd/dev-mode?]} name payload]
+  (format component-template name 
+          (if dev-mode?
+            (format "\n\n%s\n\n" (with-out-str (pprint/pprint payload)))
+            payload)))
+
+(defn routing-component [{:keys [options routes route-params]}]
+  (client-component options "routing" 
+                    (cond-> {:routes routes}
+                      route-params (assoc :route-params route-params))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
 
-(defn database-list [{{:keys [::dd/js-to-load ::dd/datomic-uris] :as context} 
-                      ::dd/context}] 
-  (->> (client-component
-        "database-list"
-        {:uri-prefix (::dd/uri-prefix context)
-         :databases datomic-uris})
-       (layout "index" js-to-load)))
+(defn database-list [{:keys [options] :as request}] 
+  (layout "index" options
+          (routing-component request)
+          (client-component options "database-list" 
+                            {:databases (get-in request [:options ::dd/datomic-uris])})))
 
-(defn search [{{:keys [::dd/deprecated-attr ::dd/js-to-load 
-                       ::dd/multiple-databases? ::dd/uri-prefix]} ::dd/context
-               db-uri :db-uri
-               uri :uri}] 
-  (->> (client-component
-        "search"
-        (cond-> {:uri-prefix uri
-                 :db {:schema {:db/ident {:db/unique :db.unique/identity}}
-                      :datoms (datomic/all-idents-as-datoms (as-db db-uri) deprecated-attr)}}
-          multiple-databases? (assoc :databases-uri uri-prefix)))
-       (layout "index" js-to-load)))
+(defn search [{:keys [options db-uri] :as request}] 
+  (layout "index" options
+          (routing-component request)
+          (client-component options "search" (datomic/datascript-db db-uri options))))
 
-(defn detail [{{:keys [::dd/js-to-load read-only?] :as context} ::dd/context
-               uri :uri}]
-  (->> (client-component
-        "detail"
-        (merge {:search-uri-prefix (string/replace uri #"/(ident|entity).*" "")
-                :read-only? read-only?}
-               (select-keys context [:lookup-type :lookup-ref :entity :entity-stats :uri])))
-       (layout "index" js-to-load)))
+(defn detail [{:keys [options context] :as request}]
+  (layout "index" options
+          (routing-component request)
+          (client-component options "detail" 
+                            (select-keys context 
+                                         [:read-only? :lookup-type :lookup-ref 
+                                          :entity :entity-stats]))))
 
-(defn edit [{{:keys [read-only?]} ::dd/context :as request}]
-  (if read-only?
+(defn edit [{:keys [options context] :as request}]
+  (if (:read-only? context)
     access-denied-response
-    (layout "mdp" (get-in request [::dd/context :entity :db/doc]))))
+    (layout "mdp" options (format "<script>var editor_content = '%s';</script>" 
+                                  (get-in context [:entity :db/doc])))))

@@ -12,7 +12,7 @@
            .-textContent
            edn/read-string))
 
-(defn prepare-datascript-db [state]
+(defn maybe-prepare-datascript-db [state]
   (if-let [{:keys [datoms schema]} (:db state)]
     (assoc state :db @(d/conn-from-datoms (map (partial apply d/datom) datoms) schema))
     state))
@@ -20,10 +20,10 @@
 (def COMPONENT-ATTR "data-component")
 
 (defn start-component! [common-state component-type->fn element]
+  (when-let [state (read-edn-from-inner-script-tag element)]
+    (swap! common-state merge (maybe-prepare-datascript-db state)))
   (when-let [component-fn (get component-type->fn
                                (.getAttribute element COMPONENT-ATTR))]
-    (when-let [state (read-edn-from-inner-script-tag element)]
-      (swap! common-state merge (prepare-datascript-db state)))
     (rum/mount (component-fn common-state) element)))
 
 (def COMPONENT-DOM-QUERY (str "[" COMPONENT-ATTR "]"))

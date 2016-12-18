@@ -9,27 +9,20 @@
             [ring.middleware.resource :as resource]
             [ring.util.response :as response]))
 
-(defn wrap-with-context [options handler]
+(defn wrap-with-context [options routes handler]
   (fn [request]
-    (-> (update request ::dd/context merge
-                (-> options
-                    options/maybe-prepare-database-uris
-                    (select-keys
-                                 [::dd/datomic-uri
-                                  ::dd/datomic-uris
-                                  ::dd/uri-prefix
-                                  ::dd/deprecated-attr
-                                  ::dd/annotate-tx-fn
-                                  ::dd/multiple-databases?
-                                  ::dd/js-to-load])))
+    (-> (merge request
+               {:routes routes
+                :options (-> (options/maybe-prepare-database-uris options)
+                             (dissoc ::dd/allow-write-pred ::dd/allow-read-pred))})
         handler)))
 
-(defn wrap-with-db [options handler]
-  (fn [{:keys [::dd/context route-params] :as request}]
+(defn wrap-with-db [handler]
+  (fn [{:keys [options route-params] :as request}]
     (-> (assoc request :db-uri 
                (if-let [db-name (:db-name route-params)]
-                  (get-in context [::dd/datomic-uris db-name])
-                  (::dd/datomic-uri context)))
+                  (get-in options [::dd/datomic-uris db-name])
+                  (::dd/datomic-uri options)))
         handler)))
 
 (defn wrap-with-entity [options handler]
@@ -52,28 +45,41 @@
           entity-map (datomic/pull-entity db lookup-ref (::dd/deprecated-attr options))]
       (if (= entity-map {:db/id nil})
         (response/not-found "That entity does not exist.")
-        (-> (update request ::dd/context merge
+        (-> (update request :context merge
                     {:lookup-type lookup-type
                      :lookup-ref lookup-ref
                      :entity entity-map
                      :uri uri
-                     :entity-stats (datomic/entity-stats db lookup-type lookup-ref)})
+                     :entity-stats (datomic/entity-stats db lookup-type lookup-ref
+                                                         (::dd/count-datoms? options))})
             handler)))))
 
 (def entity-routes
   {:get 
    {""
-    ::search
+    :search
     
-    #{["/" [#"ident"  :lookup-type] "/" :ns "/" :name]
-      ["/" [#"ident"  :lookup-type]         "/" :name]
-      ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
-      ["/" [#"entity" :lookup-type]         "/" :name "/" [#"[^/]+" :value]]}
-    {""      ::detail
-     "/edit" ::edit}}})
+    ["/search/" [#"[a-z-/\.\d]+" :query]]
+    :search-with-query
+     
+    ["/" [#"ident" :lookup-type] "/" :name]
+    {""      :ident-detail
+     "/edit" :ident-edit}
+      
+    ["/" [#"ident" :lookup-type] "/" :ns "/" :name]
+    {""      :ident-detail-with-ns
+     "/edit" :ident-edit-with-ns}
+      
+    ["/" [#"entity" :lookup-type] "/" :name "/" [#"[^/]+" :value]]
+    {""      :entity-detail
+     "/edit" :entity-edit}
+      
+    ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
+    {""      :entity-detail-with-ns
+     "/edit" :entity-edit-with-ns}}})
 
 (def database-entity-routes
-  {"" ::database-list
+  {"" :database-list
    ["/" :db-name] entity-routes})
 
 (defn make-routes [uri-prefix options]
@@ -83,26 +89,36 @@
      entity-routes)])
 
 (defn make-route-handlers [options]
-  (let [with-db (partial wrap-with-db options)
-        with-db+entity (comp with-db (partial wrap-with-entity options))]
-    {::database-list views/database-list
-     ::search (with-db views/search)
-     ::detail (with-db+entity views/detail)
-     ::edit (with-db+entity views/edit)}))
+  (let [wrap-with-db+entity (comp wrap-with-db (partial wrap-with-entity options))
+        search (wrap-with-db views/search)
+        detail (wrap-with-db+entity views/detail)
+        edit (wrap-with-db+entity views/edit)]
+    {:database-list views/database-list
+     :search search
+     :search-with-query search
+     :ident-detail detail
+     :ident-edit edit
+     :entity-detail detail
+     :entity-edit edit
+     :ident-detail-with-ns detail
+     :ident-edit-with-ns edit
+     :entity-detail-with-ns detail
+     :entity-edit-with-ns edit}))
 
 (defn wrap-datomic-doc [handler options]
   (let [options (options/prepare-options options)
         {:keys [::dd/uri-prefix
                 ::dd/allow-read-pred
                 ::dd/allow-write-pred]} options
+        routes (make-routes uri-prefix options)
         dd-handler (->> (make-route-handlers options)
-                        (bidi-ring/make-handler (make-routes uri-prefix options))
-                        (wrap-with-context options))]
+                        (bidi-ring/make-handler routes)
+                        (wrap-with-context options routes))]
     (fn [{:keys [uri] :as request}]
       (or (when (string/starts-with? uri uri-prefix)
             (if (or (allow-write-pred request)
                     (allow-read-pred request))
-              (dd-handler (assoc request ::dd/context
+              (dd-handler (assoc request :context
                                  {:read-only? (not (allow-write-pred request))}))
               views/access-denied-response))
           (when (string/starts-with? uri (str "/" views/asset-prefix))

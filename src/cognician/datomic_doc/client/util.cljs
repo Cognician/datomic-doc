@@ -1,5 +1,6 @@
 (ns cognician.datomic-doc.client.util
-  (:require [cljs.core.async :refer [<! >! chan put! timeout]]
+  (:require [bidi.bidi :as bidi]
+            [cljs.core.async :refer [<! >! chan put! timeout]]
             [cljs.pprint :as pprint]
             [clojure.string :as string]
             goog.i18n.DateTimeFormat
@@ -8,12 +9,16 @@
 
 (enable-console-print!)
 
+(defn path-for
+  ([routes handler] (path-for routes handler {}))
+  ([routes handler params] (apply bidi/path-for routes handler (apply concat params))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Formatting
 
 (def kw->label (comp string/capitalize name))
 
-(def date-format 
+(def date-format
   (goog.i18n.DateTimeFormat. (.-MEDIUM_DATE goog.i18n.DateTimeFormat.Format)))
 
 (defn format-date [date]

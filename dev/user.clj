@@ -14,13 +14,14 @@ follow the steps at https://github.com/Datomic/mbrainz-sample#getting-the-data
 to download a data set."
   "datomic:free://localhost:4334/*")
 
+(def config
+  {::dd/datomic-uri      db-uri
+   ::dd/allow-write-pred (constantly true)
+   ::dd/deprecated-attr  :cognician/deprecated
+   ::dd/dev-mode?        true})
+
 (def handler
-  (ring/wrap-datomic-doc
-   (constantly (response/redirect "/dd"))
-   {::dd/datomic-uri      db-uri
-    ::dd/allow-write-pred (constantly true)
-    ::dd/deprecated-attr  :cognician/deprecated
-    ::dd/js-to-load       "main.js"}))
+  (ring/wrap-datomic-doc #(response/response (pr-str %)) config))
 
 (defonce server (atom nil))
 

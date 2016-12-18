@@ -16,8 +16,8 @@
        (filter (comp namespace :db/ident))
        (group-by (comp namespace :db/ident))
        (map (fn [[ns entities]]
-              [ns 
-               (every? :deprecated? entities) 
+              [ns
+               (every? :deprecated? entities)
                (set (map :ident-type entities))]))
        distinct
        (sort-by first)))
@@ -25,7 +25,7 @@
 (def regex-for-query #(js/RegExp. % "i"))
 
 (defn make-filter-xform-from-query [query]
-  (cond 
+  (cond
     (re-find #"^/" query)
     (filter (comp (partial re-find (-> query
                                        (string/replace #"^/" "")
@@ -56,9 +56,9 @@
   (common/debounced-action-chan type-ahead-chan 500 ::search))
 
 (defmethod common/perform-action ::search [current-state [_ query]]
-  (assoc current-state :query
-         (when (and query (not (string/blank? query)))
-           query)))
+  (assoc-in current-state [:route-params :query]
+            (when (and query (not (string/blank? query)))
+              query)))
 
 (rum/defc search-input [query]
   [:input#search
@@ -68,9 +68,9 @@
     :value       query
     :on-change   #(put! type-ahead-chan (.. % -currentTarget -value))}])
 
-(rum/defc namespace-list [uri-prefix namespaces kind]
+(rum/defc namespace-list [routes route-params namespaces kind]
   (let [namespace-count (count namespaces)]
-    [:div {:key kind}
+    [:div.namespace-list {:key kind}
      [:h2.title
       (when (= :deprecated kind)
         "Deprecated ")
@@ -81,61 +81,56 @@
          [:ul.attr-list
           (for [[item _ types] col]
             [:li {:key item}
-             [:a {:href (str uri-prefix "?query=" item "/")}
+             [:a {:href (util/path-for routes :search-with-query
+                                       (assoc route-params :query (str item "/")))}
               item
               (when-not (contains? types :schema)
                 [:span.tag.is-small (util/kw->label (first types))])]])]])]]))
 
-(rum/defc result-list [uri-prefix results]
+(rum/defc result-list [routes route-params results]
   [:div
-   [:.box (count results) " items found."] 
+   [:.box (count results) " items found."]
    (for [[namespace ident-entities] (->> results
                                          (group-by (comp namespace :db/ident))
                                          (sort-by first))
-         :let [namespace-label (when (nil? namespace) "(no namespace)")]]
+         :let                       [namespace-label (when (nil? namespace) "(no namespace)")]]
      [:div {:key (or namespace namespace-label)}
       [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
       [:ul.attr-list
        (for [ident-entity (->> ident-entities
                                (sort-by (juxt :deprecated? (comp name :db/ident))))
-             :let [name (-> ident-entity :db/ident name)]]
+             :let         [name (-> ident-entity :db/ident name)]]
          [:li {:key ident-entity}
-          [:a {:href (str uri-prefix
-                          "/ident"
-                          (when-not (nil? namespace)
-                            (str "/" namespace))
-                          "/" (string/replace name "?" "__Q"))}
+          [:a {:href (util/path-for routes
+                                    (if namespace :ident-detail-with-ns :ident-detail)
+                                    (merge route-params
+                                           (cond-> {:lookup-type "ident"
+                                                    :name (string/replace name "?" "__Q")}
+                                             namespace (assoc :ns namespace))))}
            ":" (when namespace (str namespace "/")) name]
           (when (:deprecated? ident-entity)
             [:span.tag.is-small.is-danger "Deprecated"])])]
       [:hr]])])
 
-(rum/defc search <
-  rum/reactive
-  {:will-mount (fn [state]
-                 (when-let [query (.. (goog.Uri. js/window.location)
-                                      getQueryData
-                                      (get "query"))]
-                   (swap! (first (:rum/args state)) assoc :query query))
-                 state)}
-  [state]
-  (let [{:keys [uri-prefix databases-uri db query]} (rum/react state)]
+(rum/defc search < rum/reactive [state]
+  (let [{:keys [routes route-params multiple-databases? db]} (rum/react state)
+        query                                                (:query route-params)]
     [:div.container
      [:section.section
       [:h1.title "Datomic Doc"]
-      (when databases-uri
+      (when multiple-databases?
         [:nav.nav
          [:.nav-left.nav-menu
           [:span.nav-item
-           [:a.button {:href databases-uri} "Databases"]]]])
+           [:a.button {:href (util/path-for routes :database-list)} "Databases"]]]])
       (search-input query)
       (if query
-        (result-list uri-prefix (search-idents db query))
+        (result-list routes route-params (search-idents db query))
         (let [namespaces (namespace-list-from-idents db)]
           (list
-           (rum/with-key (namespace-list uri-prefix (remove second namespaces) :active)
-                         :active)
-           [:br] [:br]
-           (rum/with-key (namespace-list uri-prefix (filter second namespaces) :deprecated)
-                         :deprecated))))]]))
-        
+           (rum/with-key (namespace-list routes route-params
+                                         (remove second namespaces) :active)
+             :active)
+           (rum/with-key (namespace-list routes route-params
+                                         (filter second namespaces) :deprecated)
+             :deprecated))))]]))

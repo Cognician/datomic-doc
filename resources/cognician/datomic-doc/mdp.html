@@ -6,20 +6,7 @@
     <title>Markdown Plus</title>
     <link href="cognician/datomic-doc/icon.png" rel="shortcut icon" type="image/png"/>
     <link rel="stylesheet" href="/cognician/datomic-doc/markdown-plus/markdown-plus.min.css"/>
-    <script src="/cognician/datomic-doc/markdown-plus/markdown-plus.min.js" charset="utf-8"></script>
-    <script>
-    $(function() {
-      editor.session.setValue("#content#", -1);
-      setTimeout(function() {
-        window.addEventListener("hashchange", function() {
-          $('.ui-layout-east').scrollTop($('.ui-layout-east').scrollTop() - 6);
-        }); // a little gap to top
-        if(window.location.hash.length > 0) {
-          $('.ui-layout-east').scrollTop($(window.location.hash).offset().top - 30); // scroll to hash element
-        }
-      }, 1000);
-    });
-    </script>
+    <script src="/cognician/datomic-doc/markdown-plus/markdown-plus.min.js" charset="utf-8"></script>    
   </head>
   <body>
     <div id="mdp-container" style="height: 99%">
@@ -168,4 +155,6 @@ T3: 2014-01-02, 9d"></i>
       </div>
     </div>
   </body>
+  #content#
+  <script src="/cognician/datomic-doc/mdp.js" charset="utf-8"></script>
 </html>

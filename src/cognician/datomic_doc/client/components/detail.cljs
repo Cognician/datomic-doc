@@ -10,17 +10,17 @@
   [:.box.metadata
    [:strong "Created: "] (util/format-date created) ". "
    (when last-touched
-     (list [:strong "Last touched: "] (util/format-date last-touched) ". "))
+     [:strong {:key "last-touched"} 
+      "Last touched: " (util/format-date last-touched) ". "])
    (when datom-count
-     (list [:strong "Appearances: "] (util/format-number datom-count) "."))
+     [:strong {:key "appearances"} 
+      "Appearances: " (util/format-number datom-count) "."])
    (when (and (= :enum lookup-type) deprecated?)
-     (list
-      [:br] [:br]
-      [:span.tag.is-danger "Deprecated"]))
+     [:div.tags-list
+      [:span.tag.is-danger "Deprecated"]])
    (when (= :schema lookup-type)
-     (list
-      [:br] [:br]
-      (when deprecated?
+     [:div.tags-list
+      (when deprecated? 
         [:span.tag.is-danger "Deprecated"])
       [:span.tag.is-primary (util/kw->label valueType)]
       (when (= cardinality :db.cardinality/many)
@@ -34,26 +34,30 @@
       (when noHistory
         [:span.tag "No History"])
       (when fulltext
-        [:span.tag "Full-text Indexed"])))])
+        [:span.tag "Full-text Indexed"])])])
 
-(rum/defc detail < rum/reactive [state]
-  (let [{:keys [uri search-uri-prefix read-only? lookup-type lookup-ref 
-                entity entity-stats]} (rum/react state)]
+(rum/defc detail [state]
+  (let [{:keys [routes route-params read-only? lookup-type lookup-ref 
+                entity entity-stats]} @state]
     [:div.container
      [:section.section
       [:h1.title "Datomic Doc"]
       [:nav.nav
        [:.nav-left.nav-menu
         [:span.nav-item
-         [:a.button {:href search-uri-prefix} "Search"]
+         [:a.button {:href (util/path-for routes :search route-params)} "Search"]
          (when (contains? #{:schema :enum} lookup-type)
            (let [query (str (namespace lookup-ref) "/")]
-             [:a.button {:href (str search-uri-prefix "?query=" query)}
+             [:a.button {:href (util/path-for routes :search-with-query 
+                                              (assoc route-params :query query))}
               "Search \"" query "\""]))]]
        (when-not read-only?
          [:.nav-right.nav-menu
           [:span.nav-item
-           [:a.button {:href (str uri "/edit")}
+           [:a.button {:href (util/path-for routes (if (:ns route-params) 
+                                                     :ident-edit-with-ns 
+                                                     :ident-edit) 
+                                            route-params)}
             "Edit :db/doc"]]])]
       [:h1.title 
        [:strong (util/kw->label lookup-type)] " "

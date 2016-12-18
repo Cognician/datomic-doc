@@ -1,5 +1,6 @@
 (ns cognician.datomic-doc.options
-  (:require [clojure.spec :as s]
+  (:require [clojure.future :refer :all]
+            [clojure.spec :as s]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
             [cognician.datomic-doc.datomic :as datomic]
@@ -15,8 +16,9 @@
 (s/def ::dd/allow-write-pred fn?)
 (s/def ::dd/allow-read-pred  fn?)
 (s/def ::dd/deprecated-attr  keyword?)
+(s/def ::dd/count-datoms?    boolean?)
 (s/def ::dd/annotate-tx-fn   fn?)
-(s/def ::dd/js-to-load       string?)
+(s/def ::dd/dev-mode?        boolean?)
 
 (s/def ::dd/config
   (s/keys :req [(or ::dd/datomic-uri ::dd/datomic-uris)]
@@ -24,8 +26,9 @@
                 ::dd/allow-write-pred
                 ::dd/allow-read-pred
                 ::dd/deprecated-attr
+                ::dd/count-datoms?
                 ::dd/annotate-tx-fn
-                ::dd/js-to-load]))
+                ::dd/dev-mode?]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Parse options
@@ -35,7 +38,7 @@
    ::dd/allow-write-pred (constantly false)
    ::dd/allow-read-pred  (constantly false)
    ::dd/annotate-tx-fn   identity
-   ::dd/js-to-load       "main.min.js"})
+   ::dd/count-datoms?    true})
 
 (def wildcard-uri? (partial re-find #"^datomic:(.*)/\*$"))
 
@@ -69,11 +72,10 @@
 
 (defn key-database-uris [{:keys [::dd/datomic-uris] :as options}]
   (assoc options ::dd/datomic-uris 
-         (into {} (map (juxt db-uri->db-name identity))
+         (into (sorted-map) (map (juxt db-uri->db-name identity))
                datomic-uris)))
 
-(defn maybe-prepare-database-uris [{:keys [::dd/multiple-databases? ::dd/datomic-uris 
-                                           ::dd/wildcard-uri?] 
+(defn maybe-prepare-database-uris [{:keys [::dd/multiple-databases? ::dd/wildcard-uri?] 
                                     :as options}]
   (if multiple-databases?
     (cond-> options
