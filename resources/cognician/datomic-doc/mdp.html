@@ -12,6 +12,7 @@
     <div id="mdp-container" style="height: 99%">
       <div class="ui-layout-north">
         <div id="toolbar" class="noselect">
+          <span data-component="editor-buttons"></span>
           <i title="Bold" class="fa fa-bold styling-icon" data-modifier="**"></i>
           <i title="Italic" class="fa fa-italic styling-icon" data-modifier="*"></i>
           <i title="Strikethrough" class="fa fa-strikethrough styling-icon" data-modifier="~~"></i>
@@ -154,7 +155,8 @@ T3: 2014-01-02, 9d"></i>
         <article class="markdown-body" id="cache" style="display: none"></article>
       </div>
     </div>
+    #content#
   </body>
-  #content#
+  <script src="#js-to-load#"></script>
   <script src="/cognician/datomic-doc/mdp.js" charset="utf-8"></script>
 </html>

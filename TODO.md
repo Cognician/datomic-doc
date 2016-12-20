@@ -2,11 +2,8 @@
 
 ## Editor
 
-- Dirty state on-close handler asking user to confirm close.
-- Save and cancel buttons.
-- Ajax call to save content.
 - POST handler for ajax call.
-- Use `:db.fn/cas` to commit. If fail, show error message with link to edit in new tab (showing any unanticipated changes) and maintain dirty state.
+- Use `:db.fn/cas` to commit.
 - Use `::dd/annotate-tx` fn.
 
 ## Ideas

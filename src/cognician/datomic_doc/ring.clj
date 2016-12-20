@@ -1,5 +1,6 @@
 (ns cognician.datomic-doc.ring
-  (:require [bidi.ring :as bidi-ring]
+  (:require [bidi.bidi :as bidi]
+            [bidi.ring :as bidi-ring]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
             [cognician.datomic-doc.datomic :as datomic :refer [as-db]]
@@ -11,6 +12,9 @@
   (fn [request]
     (-> (merge request
                {:options (options/maybe-prepare-database-uris options)
+                :route   (:handler (bidi/match-route* routes
+                                                      ((some-fn :path-info :uri) request)
+                                                      request))
                 :routes  routes})
         handler)))
 

@@ -45,9 +45,10 @@
             (format "\n\n%s\n\n" (with-out-str (pprint/pprint payload)))
             payload)))
 
-(defn routing-component [{:keys [options routes route-params]}]
+(defn routing-component [{:keys [options routes route route-params]}]
   (client-component options "routing"
-                    (cond-> {:routes routes}
+                    (cond-> {:routes routes
+                             :route route}
                       route-params (assoc :route-params route-params))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -75,5 +76,7 @@
 (defn edit [{:keys [options entity read-only?] :as request}]
   (if read-only?
     access-denied-response
-    (layout "mdp" options (format "<script>var editor_content = '%s';</script>"
-                                  (get-in entity [:entity :db/doc])))))
+    (layout "mdp" options
+            (routing-component request)
+            (format "<script>var editor_content = '%s';</script>"
+                    (get-in entity [:entity :db/doc])))))
