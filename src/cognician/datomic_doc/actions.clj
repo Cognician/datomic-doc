@@ -21,13 +21,13 @@
 
 (defn template* [name]
   (-> (resource-file-contents name)
-      (string/replace "#js-to-load#" (str "/" asset-prefix "main.min.js"))))
+      (string/replace "#js-to-load#" (str "/" asset-prefix "js/main.min.js"))))
 
 (def template (memoize template*))
 
 (defn dev-template [name]
   (-> (resource-file-contents name)
-      (string/replace "#js-to-load#" (str "/" asset-prefix "main.js"))))
+      (string/replace "#js-to-load#" (str "/" asset-prefix "js/main.js"))))
 
 (defn layout [template-name {:keys [::dd/dev-mode?]} & content]
   (let [template-name (str asset-prefix "/" template-name ".html")]

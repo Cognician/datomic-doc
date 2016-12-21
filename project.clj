@@ -24,7 +24,14 @@
                         [lein-figwheel "0.5.8" :exclusions [org.clojure/clojure]]]
               :source-paths ["dev"]
               :resource-paths ["target/js"]}}
-  :cljsbuild {:builds 
+  :clean-targets ^{:protect false} ["target" "resources/cognician/datomic-doc/js"]
+  :auto-clean false
+  :aliases {"package"
+            ["do"
+             ["clean"]
+             ["cljsbuild" "once" "main"]
+             ["jar"]]}
+  :cljsbuild {:builds
               [{:id "dev"
                 :source-paths ["src"]
                 :figwheel {:on-jsload "cognician.datomic-doc.client/start-client!"}
@@ -32,7 +39,7 @@
                            :compiler-stats true
                            :parallel-build true
                            :asset-path "/cognician/datomic-doc/dev"
-                           :output-to "resources/cognician/datomic-doc/main.js"
+                           :output-to "resources/cognician/datomic-doc/js/main.js"
                            :output-dir "target/js/cognician/datomic-doc/dev"
                            :optimizations :none
                            :source-map-timestamp true}}
@@ -41,7 +48,7 @@
                 :compiler {:compiler-stats true
                            :parallel-build true
                            :asset-path "/cognician/datomic-doc"
-                           :output-to "resources/cognician/datomic-doc/main.min.js"
+                           :output-to "resources/cognician/datomic-doc/js/main.min.js"
                            :output-dir "target/js/main"
                            :externs ["externs/ace_externs.js"]
                            :optimizations :advanced
