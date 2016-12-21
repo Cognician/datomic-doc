@@ -295,6 +295,12 @@ Separately, start [figwheel](https://github.com/bhauman/lein-figwheel) `lein fig
 
 Then visit `http://localhost:8080/dd`.
 
+To test production artifacts, set `user/config`'s `::dd/dev-mode?` to `false`, and ensure you have the production JS building:
+
+`lein cljsbuild auto main`
+
+Then visit `http://localhost:8080/dd`.
+
 ------
 
 ## License

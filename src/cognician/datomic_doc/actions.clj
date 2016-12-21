@@ -1,9 +1,10 @@
-(ns cognician.datomic-doc.views
+(ns cognician.datomic-doc.actions
   (:require [clojure.java.io :as io]
             [clojure.pprint :as pprint]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
-            [cognician.datomic-doc.datomic :as datomic]
+            [cognician.datomic-doc.datomic :as datomic :refer [as-conn]]
+            [datomic.api :as d]
             [ring.util.response :as response]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -80,3 +81,23 @@
             (routing-component request)
             (format "<script>var editor_content = '%s';</script>"
                     (get-in entity [:entity :db/doc])))))
+
+(defn save! [{:keys [options db-uri entity body]
+              :as request}]
+  (let [{:keys [lookup-ref entity]} entity
+        annotate-tx-fn (::dd/annotate-tx-fn options)
+        tx (cond-> [[:db.fn/cas lookup-ref :db/doc (:db/doc entity) (slurp body)]]
+             annotate-tx-fn
+             (conj (annotate-tx-fn request {:db/id (d/tempid :db.part/tx)})))]
+    (try
+      @(d/transact (as-conn db-uri) tx)
+      :ok
+      (catch Throwable e
+        (or (-> e .getCause ex-data :db/error) :error)))))
+
+(defn save [{:keys [read-only?] :as request}]
+  (if read-only?
+    access-denied-response
+    (-> (save! request)
+        pr-str
+        response/response)))

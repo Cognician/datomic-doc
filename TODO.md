@@ -1,11 +1,5 @@
 # To do
 
-## Editor
-
-- POST handler for ajax call.
-- Use `:db.fn/cas` to commit.
-- Use `::dd/annotate-tx` fn.
-
 ## Ideas
 
 Display edit history.

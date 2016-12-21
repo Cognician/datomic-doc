@@ -36,7 +36,6 @@
   {::dd/uri-prefix       "dd"
    ::dd/allow-write-pred (constantly false)
    ::dd/allow-read-pred  (constantly false)
-   ::dd/annotate-tx-fn   identity
    ::dd/count-datoms?    true})
 
 (def wildcard-uri? (partial re-find #"^datomic:(.*)/\*$"))

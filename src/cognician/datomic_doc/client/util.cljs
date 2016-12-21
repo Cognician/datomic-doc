@@ -4,7 +4,9 @@
             [cljs.pprint :as pprint]
             [clojure.string :as string]
             goog.i18n.DateTimeFormat
-            goog.i18n.NumberFormat)
+            goog.i18n.NumberFormat
+            goog.net.XhrIo
+            [goog.userAgent :as ua])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
@@ -56,6 +58,21 @@
                t     (js/setTimeout #(go (>! c' loc)) delay)]
            (recur (js/Date.) t)))))
    c'))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Ajax
+
+(defn ajax [url body callback]
+  (.send goog.net.XhrIo
+         (if ua/IE
+           (str url (if (re-find #"\?" url) "&" "?") "rand=" (rand))
+           url)
+         (fn [reply]
+           (let [xhr (.-target reply)]
+             (when (and (== 200 (.getStatus xhr)) callback)
+               (callback (.getResponseText xhr)))))
+         "POST"
+         body))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Pretty print data

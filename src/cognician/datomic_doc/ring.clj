@@ -3,9 +3,9 @@
             [bidi.ring :as bidi-ring]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
+            [cognician.datomic-doc.actions :as actions]
             [cognician.datomic-doc.datomic :as datomic :refer [as-db]]
             [cognician.datomic-doc.options :as options]
-            [cognician.datomic-doc.views :as views]
             [ring.util.response :as response]))
 
 (defn wrap-with-options+routes [options routes handler]
@@ -59,32 +59,35 @@
           (if (or (allow-write-pred request)
                   (allow-read-pred request))
             (handler (assoc request :read-only? (not (allow-write-pred request))))
-            views/access-denied-response))
+            actions/access-denied-response))
         (handler request))))
 
 (def entity-routes
-  {:get
-   {""
-    :search
+  {""
+   :search
 
-    ["/search/" [#"[A-Za-z-/\.\d]+" :query]]
-    :search-with-query
+   ["/search/" [#"[A-Za-z-/\.\d]+" :query]]
+   :search-with-query
 
-    ["/" [#"ident" :lookup-type] "/" :name]
-    {""      :ident-detail
-     "/edit" :ident-edit}
+   ["/" [#"ident" :lookup-type] "/" :name]
+   {""      :ident-detail
+    "/edit" :ident-edit
+    "/save" {:post :ident-save}}
 
-    ["/" [#"ident" :lookup-type] "/" :ns "/" :name]
-    {""      :ident-detail-with-ns
-     "/edit" :ident-edit-with-ns}
+   ["/" [#"ident" :lookup-type] "/" :ns "/" :name]
+   {""      :ident-detail-with-ns
+    "/edit" :ident-edit-with-ns
+    "/save" {:post :ident-save-with-ns}}
 
-    ["/" [#"entity" :lookup-type] "/" :name "/" [#"[^/]+" :value]]
-    {""      :entity-detail
-     "/edit" :entity-edit}
+   ["/" [#"entity" :lookup-type] "/" :name "/" [#"[^/]+" :value]]
+   {""      :entity-detail
+    "/edit" :entity-edit
+    "/save" {:post :entity-save}}
 
-    ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
-    {""      :entity-detail-with-ns
-     "/edit" :entity-edit-with-ns}}})
+   ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
+   {""      :entity-detail-with-ns
+    "/edit" :entity-edit-with-ns
+    "/save" {:post :entity-save-with-ns}}})
 
 (def database-entity-routes
   {""             :database-list
@@ -98,23 +101,28 @@
 
 (defn make-route-handlers [options]
   (let [check-access  (partial wrap-check-access options)
-        search        (-> views/search check-access wrap-with-db-uri)
+        search        (-> actions/search check-access wrap-with-db-uri)
         db-uri+entity (comp wrap-with-db-uri
                             (partial wrap-with-entity options)
                             check-access)
-        detail        (db-uri+entity views/detail)
-        edit          (db-uri+entity views/edit)]
-    {:database-list         (check-access views/database-list)
+        detail        (db-uri+entity actions/detail)
+        edit          (db-uri+entity actions/edit)
+        save          (db-uri+entity actions/save)]
+    {:database-list         (check-access actions/database-list)
      :search                search
      :search-with-query     search
      :ident-detail          detail
      :ident-detail-with-ns  detail
      :ident-edit            edit
      :ident-edit-with-ns    edit
+     :ident-save            save
+     :ident-save-with-ns    save
      :entity-detail         detail
      :entity-detail-with-ns detail
      :entity-edit           edit
-     :entity-edit-with-ns   edit}))
+     :entity-edit-with-ns   edit
+     :entity-save           save
+     :entity-save-with-ns   save}))
 
 (defn wrap-datomic-doc [handler options]
   (let [options    (options/prepare-options options)
@@ -123,7 +131,7 @@
         dd-handler (->> (make-route-handlers options)
                         (bidi-ring/make-handler routes)
                         (wrap-with-options+routes options routes))
-        asset-path (str "/" views/asset-prefix)]
+        asset-path (str "/" actions/asset-prefix)]
     (fn [{:keys [uri] :as request}]
       (or (when (string/starts-with? uri uri-prefix)
             (dd-handler request))

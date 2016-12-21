@@ -43,6 +43,7 @@
                            :asset-path "/cognician/datomic-doc"
                            :output-to "resources/cognician/datomic-doc/main.min.js"
                            :output-dir "target/js/main"
+                           :externs ["externs/ace_externs.js"]
                            :optimizations :advanced
                            :source-map-timestamp true}}]}
   :figwheel {:http-server-root "."
