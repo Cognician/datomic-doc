@@ -17,11 +17,11 @@
                [org.clojure/clojurescript "1.9.293"]
                [rum "0.10.7"]
                [datascript "0.15.5"]
+               [figwheel-sidecar "0.5.8"]
                ;; dependencies are fun
                ;; datomic brings in guava 18.0, which is incompatible with cljs
                [com.google.guava/guava "19.0"]]
-              :plugins [[lein-cljsbuild "1.1.5" :exclusions [org.clojure/clojure]]
-                        [lein-figwheel "0.5.8" :exclusions [org.clojure/clojure]]]
+              :plugins [[lein-cljsbuild "1.1.5" :exclusions [org.clojure/clojure]]]
               :source-paths ["dev"]
               :resource-paths ["target/js"]}}
   :clean-targets ^{:protect false} ["target" "resources/cognician/datomic-doc/js"]
@@ -29,33 +29,17 @@
   :aliases {"package"
             ["do"
              ["clean"]
-             ["cljsbuild" "once" "main"]
+             ["cljsbuild" "once" "production"]
              ["jar"]]}
   :cljsbuild {:builds
-              [{:id "dev"
+              [{:id "production"
                 :source-paths ["src"]
-                :figwheel {:on-jsload "cognician.datomic-doc.client/start-client!"}
-                :compiler {:main cognician.datomic-doc.client
-                           :compiler-stats true
-                           :parallel-build true
-                           :asset-path "/cognician/datomic-doc/dev"
-                           :output-to "resources/cognician/datomic-doc/js/main.js"
-                           :output-dir "target/js/cognician/datomic-doc/dev"
-                           :optimizations :none
-                           :source-map-timestamp true}}
-               {:id "main"
-                :source-paths ["src"]
-                :compiler {:compiler-stats true
-                           :parallel-build true
-                           :asset-path "/cognician/datomic-doc"
-                           :output-to "resources/cognician/datomic-doc/js/main.min.js"
-                           :output-dir "target/js/main"
-                           :externs ["externs/ace_externs.js"]
-                           :optimizations :advanced
-                           :source-map-timestamp true}}]}
-  :figwheel {:http-server-root "."
-             :builds-to-start  ["dev"]
-             :server-ip "0.0.0.0"
-             :server-port 4000
-             :css-dirs ["resources/cognician/datomic-doc"]
-             :repl false})
+                :compiler 
+                {:optimizations :advanced
+                 :output-to "resources/cognician/datomic-doc/js/main.min.js"
+                 :output-dir "target/js/main/cognician/datomic-doc/main"
+                 :compiler-stats true
+                 :parallel-build true
+                 :source-map "resources/cognician/datomic-doc/js/main.min.js.map"
+                 :source-map-timestamp true
+                 :externs ["externs/ace_externs.js"]}}]})

@@ -289,9 +289,7 @@ Development notes are kept in [TODO.md](https://github.com/Cognician/datomic-doc
 
 Visit `dev/user.clj` and modify `user/db-uri` and `user/config` to your preference.
 
-Start a REPL `lein repl` and issue `(user/reset)` to start the development server.
-
-Separately, start [figwheel](https://github.com/bhauman/lein-figwheel) `lein figwheel` to build ClojureScript.
+Start a REPL `lein repl`, issue `(user/reset)` to start the development web-server (which will restart on every reset), and issue `(user/start-figwheel)` to start cljs compilation.
 
 Then visit `http://localhost:8080/dd`.
 
@@ -305,7 +303,7 @@ Then visit `http://localhost:8080/dd`.
 
 #### Building
 
-Use `lein package` to check that JVM code compiles, build production js and build a jar.
+Use `lein package` to check that JVM code compiles, build production Javascript and build a .jar file.
 
 ------
 

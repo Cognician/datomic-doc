@@ -13,7 +13,8 @@
 
 (defn path-for
   ([routes handler] (path-for routes handler {}))
-  ([routes handler params] (apply bidi/path-for routes handler (apply concat params))))
+  ([routes handler params]
+   (apply bidi/path-for routes handler (apply concat params))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Formatting
@@ -62,17 +63,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Ajax
 
-(defn ajax [url body callback]
-  (.send goog.net.XhrIo
-         (if ua/IE
-           (str url (if (re-find #"\?" url) "&" "?") "rand=" (rand))
-           url)
-         (fn [reply]
-           (let [xhr (.-target reply)]
-             (when (and (== 200 (.getStatus xhr)) callback)
-               (callback (.getResponseText xhr)))))
-         "POST"
-         body))
+(defn ajax-url [url]
+  (if ua/IE
+    (str url (if (re-find #"\?" url) "&" "?") "rand=" (rand))
+    url))
+
+(defn ajax-result-handler [callback]
+  (fn [reply]
+    (let [xhr (.-target reply)]
+      (when (and (== 200 (.getStatus xhr)) callback)
+        (callback (.getResponseText xhr))))))
+
+(defn ajax-get [url callback]
+  (goog.net.XhrIo/send (ajax-url url) (ajax-result-handler callback)))
+
+(defn ajax-post [url body callback]
+  (goog.net.XhrIo/send (ajax-url url) (ajax-result-handler callback) "POST" body))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Pretty print data

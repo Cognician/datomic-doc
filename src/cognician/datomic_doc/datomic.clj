@@ -101,6 +101,18 @@
                  count)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Assert :db/doc
+
+(defn save-db-doc! [db-uri {:keys [lookup-ref entity]} body tx-map]
+  (try
+    @(d/transact (as-conn db-uri) 
+                 [tx-map
+                  [:db.fn/cas lookup-ref :db/doc (:db/doc entity) (slurp body)]])
+    :ok
+    (catch Throwable e
+      (or (-> e .getCause ex-data :db/error) :error))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Datoms for Datascript
 
 (defn datomic-schema? [attr]
@@ -133,4 +145,3 @@
   (cond-> {:db {:schema {:db/ident {:db/unique :db.unique/identity}}
                 :datoms (all-idents-as-datoms (as-db db-uri) deprecated-attr)}}
     multiple-databases? (assoc :multiple-databases? true)))
-

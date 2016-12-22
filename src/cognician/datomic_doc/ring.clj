@@ -64,33 +64,37 @@
 
 (def entity-routes
   {""
-   :search
+   {:get :search}
 
    ["/search/" [#"[A-Za-z-/\.\d]+" :query]]
-   :search-with-query
+   {:get :search-with-query}
 
    ["/" [#"ident" :lookup-type] "/" :name]
-   {""      :ident-detail
-    "/edit" :ident-edit
+   {""      {:get :ident-detail}
+    "/edit" {:get :ident-edit}
+    "/doc"  {:get :ident-doc}
     "/save" {:post :ident-save}}
 
    ["/" [#"ident" :lookup-type] "/" :ns "/" :name]
-   {""      :ident-detail-with-ns
-    "/edit" :ident-edit-with-ns
+   {""      {:get :ident-detail-with-ns}
+    "/edit" {:get :ident-edit-with-ns}
+    "/doc"  {:get :ident-doc-with-ns}
     "/save" {:post :ident-save-with-ns}}
 
    ["/" [#"entity" :lookup-type] "/" :name "/" [#"[^/]+" :value]]
-   {""      :entity-detail
-    "/edit" :entity-edit
+   {""      {:get :entity-detail}
+    "/edit" {:get :entity-edit}
+    "/doc"  {:get :entity-doc}
     "/save" {:post :entity-save}}
 
    ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
-   {""      :entity-detail-with-ns
-    "/edit" :entity-edit-with-ns
+   {""      {:get :entity-detail-with-ns}
+    "/edit" {:get :entity-edit-with-ns}
+    "/doc"  {:get :entity-doc-with-ns}
     "/save" {:post :entity-save-with-ns}}})
 
 (def database-entity-routes
-  {""             :database-list
+  {"" {:get :database-list}
    ["/" :db-name] entity-routes})
 
 (defn make-routes [uri-prefix options]
@@ -107,6 +111,7 @@
                             check-access)
         detail        (db-uri+entity actions/detail)
         edit          (db-uri+entity actions/edit)
+        doc           (db-uri+entity actions/doc)
         save          (db-uri+entity actions/save)]
     {:database-list         (check-access actions/database-list)
      :search                search
@@ -115,12 +120,16 @@
      :ident-detail-with-ns  detail
      :ident-edit            edit
      :ident-edit-with-ns    edit
+     :ident-doc             doc
+     :ident-doc-with-ns     doc
      :ident-save            save
      :ident-save-with-ns    save
      :entity-detail         detail
      :entity-detail-with-ns detail
      :entity-edit           edit
      :entity-edit-with-ns   edit
+     :entity-doc            doc
+     :entity-doc-with-ns    doc
      :entity-save           save
      :entity-save-with-ns   save}))
 

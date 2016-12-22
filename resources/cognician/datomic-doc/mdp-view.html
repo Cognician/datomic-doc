@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Datomic Doc</title>
+    <link href="cognician/datomic-doc/icon.png" rel="shortcut icon" type="image/png"/>
+    <link rel="stylesheet" href="/cognician/datomic-doc/markdown-plus/markdown-plus.min.css"/>
+    <script src="/cognician/datomic-doc/markdown-plus/markdown-plus.min.js" charset="utf-8"></script>    
+  </head>
+  <body>
+    <div id="mdp-container" style="height: 99%">
+      <div class="ui-layout-center">
+        <div id="editor"></div> <!-- editor -->
+      </div>
+      <div class="ui-layout-east">
+        <article class="markdown-body" id="preview"></article>
+        <article class="markdown-body" id="cache" style="display: none"></article>
+      </div>
+    </div>
+    #content#
+    <span data-component="editor-buttons"></span>
+  </body>
+  <script src="#js-to-load#"></script>
+  <script src="/cognician/datomic-doc/mdp.js" charset="utf-8"></script>
+  <script src="/cognician/datomic-doc/mdp-view.js" charset="utf-8"></script>
+</html>

@@ -38,6 +38,12 @@
       (when fulltext
         [:span.tag "Full-text Indexed"])])])
 
+(def entity?+ns?->edit-route
+  {[false true]  :ident-edit-with-ns
+   [false false] :ident-edit
+   [true true]   :entity-edit-with-ns
+   [true false]  :entity-edit})
+
 (rum/defc detail [state]
   (let [{:keys [routes route-params read-only? lookup-type lookup-ref
                 entity entity-stats]} @state]
@@ -52,15 +58,7 @@
            (let [query (str (namespace lookup-ref) "/")]
              [:a.button {:href (util/path-for routes :search-with-query
                                               (assoc route-params :query query))}
-              "Search \"" query "\""]))]]
-       (when-not read-only?
-         [:.nav-right.nav-menu
-          [:span.nav-item
-           [:a.button {:href (util/path-for routes (if (:ns route-params)
-                                                     :ident-edit-with-ns
-                                                     :ident-edit)
-                                            route-params)}
-            "Edit :db/doc"]]])]
+              "Search \"" query "\""]))]]]
       [:h1.title
        [:strong (util/kw->label lookup-type)] " "
        (if (= :entity lookup-type)
@@ -69,6 +67,8 @@
       [:hr]
       (metadata lookup-type entity entity-stats)
       [:hr]
-      (if-let [doc (:db/doc entity)]
-        [:div doc]
-        [:p "No documentation yet."])]]))
+      [:iframe.markdown-editor
+       {:src (util/path-for routes 
+                            (get entity?+ns?->edit-route
+                                 [(= :entity lookup-type) (boolean (:ns route-params))])
+                            route-params)}]]]))

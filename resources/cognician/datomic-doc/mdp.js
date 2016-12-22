@@ -1,5 +1,4 @@
 $(function() {
-    editor.session.setValue(editor_content, -1);
     setTimeout(function() {
         // a little gap to top
         window.addEventListener("hashchange", function() {

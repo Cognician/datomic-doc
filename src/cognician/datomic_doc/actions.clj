@@ -46,11 +46,12 @@
             (format "\n\n%s\n\n" (with-out-str (pprint/pprint payload)))
             payload)))
 
-(defn routing-component [{:keys [options routes route route-params]}]
+(defn routing-component [{:keys [options routes route route-params read-only?]}]
   (client-component options "routing"
                     (cond-> {:routes routes
                              :route route}
-                      route-params (assoc :route-params route-params))))
+                      route-params (assoc :route-params route-params)
+                      read-only? (assoc :read-only? read-only?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
@@ -66,38 +67,29 @@
           (routing-component request)
           (client-component options "search" (datomic/datascript-db db-uri options))))
 
-(defn detail [{:keys [options entity read-only?] :as request}]
+(defn detail [{:keys [options entity] :as request}]
   (layout "index" options
           (routing-component request)
           (client-component options "detail"
                             (cond-> (select-keys entity [:lookup-type :lookup-ref
                                                          :entity :entity-stats])
-                              read-only? (assoc :read-only? read-only?)))))
+                              true (update :entity dissoc :db/doc)))))
 
-(defn edit [{:keys [options entity read-only?] :as request}]
+(defn edit [{:keys [options read-only?] :as request}]
+  (layout (if read-only? "mdp-view" "mdp-edit") options 
+          (routing-component request)))
+
+(defn doc [request]
+  (-> (or (get-in request [:entity :entity :db/doc]) "")
+      response/response
+      (response/content-type "text/plain; charset=UTF-8")))
+
+(defn save [{:keys [options read-only? db-uri entity body] :as request}]
   (if read-only?
     access-denied-response
-    (layout "mdp" options
-            (routing-component request)
-            (format "<script>var editor_content = '%s';</script>"
-                    (get-in entity [:entity :db/doc])))))
-
-(defn save! [{:keys [options db-uri entity body]
-              :as request}]
-  (let [{:keys [lookup-ref entity]} entity
-        annotate-tx-fn (::dd/annotate-tx-fn options)
-        tx (cond-> [[:db.fn/cas lookup-ref :db/doc (:db/doc entity) (slurp body)]]
-             annotate-tx-fn
-             (conj (annotate-tx-fn request {:db/id (d/tempid :db.part/tx)})))]
-    (try
-      @(d/transact (as-conn db-uri) tx)
-      :ok
-      (catch Throwable e
-        (or (-> e .getCause ex-data :db/error) :error)))))
-
-(defn save [{:keys [read-only?] :as request}]
-  (if read-only?
-    access-denied-response
-    (-> (save! request)
-        pr-str
-        response/response)))
+    (let [annotate-tx-fn (::dd/annotate-tx-fn options)]
+      (-> (datomic/save-db-doc! db-uri entity body 
+                                (cond->> {:db/id (d/tempid :db.part/tx)}
+                                  annotate-tx-fn (annotate-tx-fn request)))
+          pr-str
+          response/response))))
