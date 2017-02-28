@@ -177,7 +177,7 @@ Integration with your web service handler, using a sensible "getting started" co
   (-> routes
       (ddr/wrap-datomic-doc 
        {::dd/datomic-uri "datomic:free://localhost:4334/*"
-        ::dd/allow-write-fn (constantly true)}))
+        ::dd/allow-write-pred (constantly true)}))
 ```
 
 ------
