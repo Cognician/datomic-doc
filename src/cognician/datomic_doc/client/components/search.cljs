@@ -89,7 +89,11 @@
 
 (rum/defc result-list [routes route-params results]
   [:div
-   [:.box (count results) " items found."]
+   (let [deprecated-count (->> results (filter :deprecated?) count)]
+     [:.box (count results) " items found"
+      (if (pos? deprecated-count)
+        (str ", of which " deprecated-count " are deprecated.")
+        ".")])
    (for [[namespace ident-entities] (->> results
                                          (group-by (comp namespace :db/ident))
                                          (sort-by first))

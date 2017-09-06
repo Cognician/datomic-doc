@@ -43,4 +43,17 @@
                                        (db) attr-nses-to-deprecate))]
                  [:db/add attr deprecated-attr true]))
 
-  _)
+  (let [dep (d/q '[:find (count ?e) . :in $ ?deprecate-attr :where
+                   [?e :db/ident]
+                   [?e ?deprecate-attr]]
+                 (db) deprecated-attr)
+
+        not-dep (d/q '[:find (count ?e) . :in $ ?deprecate-attr :where
+                       [?e :db/ident]
+                       (not [?e ?deprecate-attr])]
+                     (db) deprecated-attr)]
+    {:deprecated       dep
+     :active           not-dep
+     :deprecated-ratio (str (Math/round (* 100 (float (/ dep (+ dep not-dep))))) "%")})
+
+  )
