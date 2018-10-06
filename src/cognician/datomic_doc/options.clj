@@ -1,6 +1,5 @@
 (ns cognician.datomic-doc.options
-  (:require [clojure.future :refer :all]
-            [clojure.spec :as s]
+  (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
             [cognician.datomic-doc.spec :as spec]

@@ -5,44 +5,6 @@
             [datomic.api :as d]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; DB URIs, Connections and Database Values
-
-(declare as-db)
-
-(defprotocol DatomicUri
-  (as-uri [_]))
-
-(extend-protocol DatomicUri
-  java.lang.String
-  (as-uri [db-uri] db-uri)
-  datomic.Connection
-  (as-uri [conn] (as-uri (as-db conn)))
-  datomic.db.Db
-  (as-uri [db] (:id db)))
-
-(defprotocol DatomicConnection
-  (as-conn [_]))
-
-(extend-protocol DatomicConnection
-  datomic.Connection
-  (as-conn [conn] conn)
-  java.lang.String
-  (as-conn [db-uri] (d/connect db-uri))
-  datomic.db.Db
-  (as-conn [db] (as-conn (as-uri db))))
-
-(defprotocol DatabaseReference
-  (as-db [_]))
-
-(extend-protocol DatabaseReference
-  datomic.db.Db
-  (as-db [db] db)
-  datomic.Connection
-  (as-db [conn] (d/db conn))
-  java.lang.String
-  (as-db [db-uri] (as-db (as-conn db-uri))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Fetch Entity
 
 (def pull-spec
@@ -105,7 +67,7 @@
 
 (defn save-db-doc! [db-uri {:keys [lookup-ref entity]} body tx-map]
   (try
-    @(d/transact (as-conn db-uri) 
+    @(d/transact (d/connect db-uri)
                  [tx-map
                   [:db.fn/cas lookup-ref :db/doc (:db/doc entity) (slurp body)]])
     :ok
@@ -143,5 +105,5 @@
 (defn datascript-db [db-uri {:keys [::dd/deprecated-attr ::dd/multiple-databases?
                                     ::dd/uri-prefix]}]
   (cond-> {:db {:schema {:db/ident {:db/unique :db.unique/identity}}
-                :datoms (all-idents-as-datoms (as-db db-uri) deprecated-attr)}}
+                :datoms (all-idents-as-datoms (d/db (d/connect db-uri)) deprecated-attr)}}
     multiple-databases? (assoc :multiple-databases? true)))

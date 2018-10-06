@@ -5,7 +5,7 @@
             [rum.core :as rum]))
 
 (defn load-content-result [unsaved body]
-  (.setValue js/editor body -1)
+  #_(.setValue js/editor body -1)
   (reset! unsaved false))
 
 (defn load-content! [load-route unsaved]
@@ -38,35 +38,37 @@ Please open this document in a new tab to see what's new."})
       (js/window.alert (get error-messages result default-error-message)))))
 
 (defn save-content! [save-route unsaved]
-  (util/ajax-post save-route (.getValue js/editor) #(save-content-result unsaved %)))
+  #_(util/ajax-post save-route (.getValue js/editor) #(save-content-result unsaved %)))
 
-(rum/defcs editor-buttons < 
+(rum/defcs editor-buttons <
+  rum/reactive
   (rum/local false ::unsaved)
   {:did-mount (fn [{:keys [::unsaved rum/args] :as state}]
                 (js/setTimeout
                  (fn []
                    ;; load the existing content
                    (let [{:keys [routes route route-params]} @(first args)]
-                     (load-content! (alter-route routes route route-params "doc") unsaved))
+                     (load-content! (alter-route routes route route-params "doc")
+                                    unsaved))
                    ;; track unsaved state
-                   (.on js/editor "change" #(reset! unsaved true))
+                   #_(.on js/editor "change" #(reset! unsaved true))
                    ;; prevent closing the tab when unsaved
                    (set! (.-onbeforeunload js/window)
                          #(when @unsaved
                             (handle-unsaved-state %))))
-                 0) 
+                 0)
                 state)}
-  [{:keys [::unsaved]} state]
-  (let [{:keys [routes route route-params read-only?]} @state]
+  [{*unsaved ::unsaved} state]
+  (let [{:keys [routes route route-params read-only?]} (rum/react state)]
     (when-not read-only?
       [:span
-       [:button.ui-button.ui-widget.ui-corner-all 
-        (if @unsaved
-          {:on-click #(save-content! (alter-route routes route route-params "save") 
-                                     unsaved)}
+       [:button.ui-button.ui-widget.ui-corner-all
+        (if @*unsaved
+          {:on-click #(save-content! (alter-route routes route route-params "save")
+                                     *unsaved)}
           {:disabled "disabled"
            :class    ["ui-button-disabled" "ui-state-disabled"]})
         "Save"]
-       [:a.ui-button.ui-widget.ui-corner-all 
+       [:a.ui-button.ui-widget.ui-corner-all
         {:href (alter-route routes route route-params "detail")}
-        (if @unsaved "Cancel" "Close")]])))
+        (if @*unsaved "Cancel" "Close")]])))

@@ -2,8 +2,8 @@
   (:require [cognician.datomic-doc.client.util :as util]
             [rum.core :as rum]))
 
-(rum/defc database-list [state]
-  (let [{:keys [routes databases]} @state]
+(rum/defc database-list < rum/reactive [state]
+  (let [{:keys [routes databases]} (rum/react state)]
     [:div.container
      [:section.section.db-list
       [:h1.title "Datomic Doc"]

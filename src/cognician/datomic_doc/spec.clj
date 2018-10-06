@@ -1,5 +1,5 @@
 (ns cognician.datomic-doc.spec
-  (:require [clojure.spec :as s]))
+  (:require [clojure.spec.alpha :as s]))
 
 (defn conform!
   "Like s/conform, but throws an error with s/explain-data on failure."

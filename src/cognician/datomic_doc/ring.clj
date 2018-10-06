@@ -4,8 +4,10 @@
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
             [cognician.datomic-doc.actions :as actions]
-            [cognician.datomic-doc.datomic :as datomic :refer [as-db]]
+            [cognician.datomic-doc.datomic :as datomic]
             [cognician.datomic-doc.options :as options]
+            [cognician.datomic-doc.routes :as routes]
+            [datomic.api :as d]
             [ring.util.response :as response]))
 
 (defn wrap-with-options+routes [options routes handler]
@@ -36,7 +38,7 @@
           lookup-ref  (case lookup-type
                         :ident  lookup-attr
                         :entity [lookup-attr value])
-          db          (as-db db-uri)
+          db          (d/db (d/connect db-uri))
           lookup-type (case lookup-type
                         :ident  (datomic/classify-ident db lookup-ref)
                         :entity :entity)
@@ -61,47 +63,6 @@
             (handler (assoc request :read-only? (not (allow-write-pred request))))
             actions/access-denied-response))
         (handler request))))
-
-(def entity-routes
-  {""
-   {:get :search}
-
-   ["/search/" [#"[A-Za-z-/\.\d]+" :query]]
-   {:get :search-with-query}
-
-   ["/" [#"ident" :lookup-type] "/" :name]
-   {""      {:get :ident-detail}
-    "/edit" {:get :ident-edit}
-    "/doc"  {:get :ident-doc}
-    "/save" {:post :ident-save}}
-
-   ["/" [#"ident" :lookup-type] "/" :ns "/" :name]
-   {""      {:get :ident-detail-with-ns}
-    "/edit" {:get :ident-edit-with-ns}
-    "/doc"  {:get :ident-doc-with-ns}
-    "/save" {:post :ident-save-with-ns}}
-
-   ["/" [#"entity" :lookup-type] "/" :name "/" [#"[^/]+" :value]]
-   {""      {:get :entity-detail}
-    "/edit" {:get :entity-edit}
-    "/doc"  {:get :entity-doc}
-    "/save" {:post :entity-save}}
-
-   ["/" [#"entity" :lookup-type] "/" :ns "/" :name "/" [#"[^/]+" :value]]
-   {""      {:get :entity-detail-with-ns}
-    "/edit" {:get :entity-edit-with-ns}
-    "/doc"  {:get :entity-doc-with-ns}
-    "/save" {:post :entity-save-with-ns}}})
-
-(def database-entity-routes
-  {"" {:get :database-list}
-   ["/" :db-name] entity-routes})
-
-(defn make-routes [uri-prefix options]
-  [uri-prefix
-   (if (::dd/multiple-databases? options)
-     database-entity-routes
-     entity-routes)])
 
 (defn make-route-handlers [options]
   (let [check-access  (partial wrap-check-access options)
@@ -134,9 +95,9 @@
      :entity-save-with-ns   save}))
 
 (defn wrap-datomic-doc [handler options]
-  (let [options    (options/prepare-options options)
-        uri-prefix (::dd/uri-prefix options)
-        routes     (make-routes uri-prefix options)
+  (let [{::dd/keys [uri-prefix multiple-databases?]
+         :as options} (options/prepare-options options)
+        routes     (routes/make-routes uri-prefix multiple-databases?)
         dd-handler (->> (make-route-handlers options)
                         (bidi-ring/make-handler routes)
                         (wrap-with-options+routes options routes))

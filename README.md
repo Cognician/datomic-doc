@@ -84,7 +84,7 @@ Query | Search result | Examples
 
 ##### Examples
 
- `/dd/ident/unused` ⟶ `:unused` 
+ `/dd/ident/unused` ⟶ `:unused`
 
  `/dd/ident/db/doc` ⟶ `:db/doc`
 
@@ -92,17 +92,17 @@ Query | Search result | Examples
 
 `/dd/entity/:name/:value` or `/dd/entity/:namespace/:name/:value` (or `/dd/:database-name/entity/...`)
 
-⟶ Entity by lookup ref lookup with: `[:<[namespace/]name> <value>]`. 
+⟶ Entity by lookup ref lookup with: `[:<[namespace/]name> <value>]`.
 
 This requires that the attr be `:db/unique` and that the value be of `:db/valueType` `:db.valueType/string`.
 
 ##### Examples
 
- `/dd/entity/tag/value` ⟶ `[:tag "value"]` 
+ `/dd/entity/tag/value` ⟶ `[:tag "value"]`
 
  `/dd/entity/user/email/no@spam.thanks` ⟶ `[:user/email "no@spam.thanks"]`
 
-**Note:** Question mark characters are represented as `__Q` in permalinks: 
+**Note:** Question mark characters are represented as `__Q` in permalinks:
 - e.g. `:user/opt-in?` ⟶ `/dd/ident/user/opt-in__Q`.
 
 ### Metadata
@@ -165,17 +165,15 @@ Leiningen or boot coordinates:
 
 **Note**: Datomic Doc expects you to have a valid Datomic peer library in your project.
 
-**Note**: Datomic Doc makes use of Clojure 1.8 and <https://github.com/tonsky/clojure-future-spec> to access the new spec capabilities coming in Clojure 1.9. Once Clojure 1.9 is released, we'll switch to 1.9 and stop using `clojure-future-spec`.
-
 Integration with your web service handler, using a sensible "getting started" configuration:
 
 ```clojure
-(require '[cognician.datomic-doc :as dd] 
+(require '[cognician.datomic-doc :as dd]
          '[cognician.datomic-doc.ring :as ddr])
 
 (def handler
   (-> routes
-      (ddr/wrap-datomic-doc 
+      (ddr/wrap-datomic-doc
        {::dd/datomic-uri "datomic:free://localhost:4334/*"
         ::dd/allow-write-pred (constantly true)}))
 ```
@@ -211,7 +209,7 @@ Key | Type
 
 Enables the full editing UI for the active user. A function which takes the request and must return `true` if the active user may edit doc-strings. Users who pass this check automatically pass the check for `::dd/allow-read-pred`.
 
-Requests maps include whatever context is available for the route the user is attempting: 
+Requests maps include whatever context is available for the route the user is attempting:
 
 - `:options` for the configured options (with any wildcard database uri expanded to a full database list).
 - `:routes` for the route table, which may include routing for multiple databases.
@@ -221,7 +219,7 @@ Requests maps include whatever context is available for the route the user is at
 For detail and edit views, to access the entity the user is viewing:
 
 ```clojure
-(datomic.api/entity (d/db (d/connect (:db-uri request))) 
+(datomic.api/entity (d/db (d/connect (:db-uri request)))
                     (get-in request [:entity :lookup-ref]))
 ```
 
@@ -267,7 +265,7 @@ The first segment of all routes served by Datomic Doc. Default value is `"dd"`.
                          (contains? (get-in request [:user :roles]) :admin))
  ::dd/allow-read-pred  (fn [request]
                          (contains? (get-in request [:user :roles]) :staff))
- ::dd/annotate-tx-fn   (fn [request tx-map] 
+ ::dd/annotate-tx-fn   (fn [request tx-map]
                          (assoc tx-map :transaction/altered-by
                                 ;; must be a valid entity id or lookup ref.
                                 [:user/email (get-in request [:user :email])]))
@@ -289,7 +287,7 @@ Development notes are kept in [TODO.md](https://github.com/Cognician/datomic-doc
 
 Visit `dev/user.clj` and modify `user/db-uri` and `user/config` to your preference.
 
-Start a REPL `lein repl`, issue `(user/reset)` to start the development web-server (which will restart on every reset), and issue `(user/start-figwheel)` to start cljs compilation.
+Start the dev service `make`, issue `M-x cider-ns-refresh` to start the development web-server.
 
 Then visit `http://localhost:8080/dd`.
 

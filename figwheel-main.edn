@@ -1,0 +1,4 @@
+{:watch-dirs ["src"]
+ :css-dirs   ["resources/cognician/datomic-doc"]
+ :mode       :serve
+ :open-url   false}

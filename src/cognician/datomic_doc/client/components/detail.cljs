@@ -44,9 +44,9 @@
    [true true]   :entity-edit-with-ns
    [true false]  :entity-edit})
 
-(rum/defc detail [state]
+(rum/defc detail < rum/reactive [state]
   (let [{:keys [routes route-params read-only? lookup-type lookup-ref
-                entity entity-stats]} @state]
+                entity entity-stats]} (rum/react state)]
     [:div.container
      [:section.section
       [:h1.title "Datomic Doc"]
@@ -68,7 +68,7 @@
       (metadata lookup-type entity entity-stats)
       [:hr]
       [:iframe.markdown-editor
-       {:src (util/path-for routes 
+       {:src (util/path-for routes
                             (get entity?+ns?->edit-route
                                  [(= :entity lookup-type) (boolean (:ns route-params))])
                             route-params)}]]]))

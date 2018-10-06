@@ -3,7 +3,7 @@
             [clojure.pprint :as pprint]
             [clojure.string :as string]
             [cognician.datomic-doc :as dd]
-            [cognician.datomic-doc.datomic :as datomic :refer [as-conn]]
+            [cognician.datomic-doc.datomic :as datomic]
             [datomic.api :as d]
             [ring.util.response :as response]))
 
@@ -46,10 +46,11 @@
             (format "\n\n%s\n\n" (with-out-str (pprint/pprint payload)))
             payload)))
 
-(defn routing-component [{:keys [options routes route route-params read-only?]}]
+(defn routing-component [{:keys [options route route-params read-only?]}]
   (client-component options "routing"
-                    (cond-> {:routes routes
-                             :route route}
+                    (cond-> {:uri-prefix          (::dd/uri-prefix options)
+                             :multiple-databases? (::dd/multiple-databases? options)
+                             :route               route}
                       route-params (assoc :route-params route-params)
                       read-only? (assoc :read-only? read-only?))))
 
@@ -76,7 +77,7 @@
                               true (update :entity dissoc :db/doc)))))
 
 (defn edit [{:keys [options read-only?] :as request}]
-  (layout (if read-only? "mdp-view" "mdp-edit") options 
+  (layout (if read-only? "mdp-view" "mdp-edit") options
           (routing-component request)))
 
 (defn doc [request]
@@ -88,7 +89,7 @@
   (if read-only?
     access-denied-response
     (let [annotate-tx-fn (::dd/annotate-tx-fn options)]
-      (-> (datomic/save-db-doc! db-uri entity body 
+      (-> (datomic/save-db-doc! db-uri entity body
                                 (cond->> {:db/id (d/tempid :db.part/tx)}
                                   annotate-tx-fn (annotate-tx-fn request)))
           pr-str
