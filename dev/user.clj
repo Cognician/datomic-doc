@@ -11,10 +11,11 @@
   "datomic:free://localhost:4334/*")
 
 (def config
-  {::dd/datomic-uri     db-uri
-   ::dd/allow-read-pred (constantly true)
-   ::dd/deprecated-attr :cognician/deprecated
-   ::dd/dev-mode?       true})
+  {::dd/datomic-uri      db-uri
+   ::dd/allow-read-pred  (constantly true)
+   ::dd/allow-write-pred (constantly true)
+   ::dd/deprecated-attr  :cognician/deprecated
+   ::dd/dev-mode?        true})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Web server

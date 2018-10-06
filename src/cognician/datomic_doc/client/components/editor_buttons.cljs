@@ -5,7 +5,7 @@
             [rum.core :as rum]))
 
 (defn load-content-result [unsaved body]
-  #_(.setValue js/editor body -1)
+  (.setValue js/editor body -1)
   (reset! unsaved false))
 
 (defn load-content! [load-route unsaved]
@@ -38,7 +38,7 @@ Please open this document in a new tab to see what's new."})
       (js/window.alert (get error-messages result default-error-message)))))
 
 (defn save-content! [save-route unsaved]
-  #_(util/ajax-post save-route (.getValue js/editor) #(save-content-result unsaved %)))
+  (util/ajax-post save-route (.getValue js/editor) #(save-content-result unsaved %)))
 
 (rum/defcs editor-buttons <
   rum/reactive
@@ -51,7 +51,7 @@ Please open this document in a new tab to see what's new."})
                      (load-content! (alter-route routes route route-params "doc")
                                     unsaved))
                    ;; track unsaved state
-                   #_(.on js/editor "change" #(reset! unsaved true))
+                   (.on js/editor "change" #(reset! unsaved true))
                    ;; prevent closing the tab when unsaved
                    (set! (.-onbeforeunload js/window)
                          #(when @unsaved
