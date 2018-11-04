@@ -30,11 +30,4 @@
 
   :outdated
   {:extra-deps {olical/depot {:mvn/version "1.0.1"}}
-   :main-opts  ["-m" "depot.outdated.main"]}
-
-  :uberjar
-  {:extra-deps
-   {pack/pack.alpha
-    {:git/url "git@github.com:juxt/pack.alpha.git"
-     :sha     "bb2c5a2c78aca9328e023b029c06ba0efdd1e3b7"}}
-   :main-opts ["-m" "mach.pack.alpha.jcl" "deps.edn" "bridge.jar" "resources"]}}}
+   :main-opts  ["-m" "depot.outdated.main"]}}}

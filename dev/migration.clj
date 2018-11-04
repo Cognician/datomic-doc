@@ -1,7 +1,7 @@
 (ns migration
   "Use the code below to quickly deprecate some of your idents.
 
-  This code assumes that you have updated `dev/user.clj`'s `user/db-uri` var with your
+  This code assumes that you have updated `db-uri` var with your
   database uri.
 
   Alter `deprecated-attr` to set your own name for the attribute, fill in
@@ -10,15 +10,18 @@
   (:require [datomic.api :as d]
             user))
 
+(def db-uri
+  "Fill in your own database uri here, or if you just want to demo,
+  follow the steps at https://github.com/Datomic/mbrainz-sample#getting-the-data
+  to download a data set."
+  "datomic:free://localhost:4334/*")
+
 (def deprecated-attr :datomic-doc/deprecated)
 
 (def deprecated-attr-tx
-  [{:db/ident              deprecated-attr
-    :db/valueType          :db.type/boolean
-    :db/cardinality        :db.cardinality/one
-    ;; these two are still necessary if you're on an older version of Datomic
-    :db/id                 #db/id[:db.part/db]
-    :db.install/_attribute :db.part/db}])
+  [{:db/ident       deprecated-attr
+    :db/valueType   :db.type/boolean
+    :db/cardinality :db.cardinality/one}])
 
 (def attrs-to-deprecate
   "Vector of keywords representing Datomic idents."
@@ -28,7 +31,7 @@
   "Vector of strings representing namespaces of Datomic idents."
   [])
 
-(def conn (partial d/connect user/db-uri))
+(def conn (partial d/connect db-uri))
 (def db (comp d/db conn))
 
 (comment

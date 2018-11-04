@@ -1,4 +1,4 @@
-(ns user
+(ns cognician.datomic-doc.service
   (:require [cognician.datomic-doc :as dd]
             [cognician.datomic-doc.ring :as ring]
             [org.httpkit.server :as http]

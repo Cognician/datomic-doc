@@ -1,2 +1,2 @@
-((nil . ((cider-ns-refresh-before-fn . "user/stop-web")
-         (cider-ns-refresh-after-fn . "user/start-web"))))
+((nil . ((cider-ns-refresh-before-fn . "cognician.datomic-doc.service/stop-web")
+         (cider-ns-refresh-after-fn . "cognician.datomic-doc.service/start-web"))))

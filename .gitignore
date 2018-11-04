@@ -1,4 +1,6 @@
 /.cpcache
+/resources/cognician/datomic-doc/js/*.map
 /resources/cognician/datomic-doc/js/*.js
 /resources/cognician/datomic-doc/js/out
+/target
 .nrepl-port
