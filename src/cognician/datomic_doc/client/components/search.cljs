@@ -15,11 +15,12 @@
        (filter (comp namespace :db/ident))
        (group-by (comp namespace :db/ident))
        (map (fn [[ns entities]]
-              [ns
-               (every? :deprecated? entities)
-               (set (map :ident-type entities))]))
+              {:ns                   ns
+               :all-deprecated?      (every? :deprecated? entities)
+               :non-deprecated-count (count (remove :deprecated? entities))
+               :deprecated-count     (count (filter :deprecated? entities))}))
        distinct
-       (sort-by first)))
+       (sort-by :ns)))
 
 (def regex-for-query #(js/RegExp. % "i"))
 
@@ -79,13 +80,16 @@
         (for [col (partition-all (js/Math.ceil (/ namespace-count 4)) namespaces)]
           [:.column {:key col}
            [:ul.attr-list
-            (for [[item _ types] col]
-              [:li {:key item}
+            (for [{:keys [ns all-deprecated? non-deprecated-count deprecated-count]} col
+                  :let [count (if all-deprecated?
+                                deprecated-count
+                                non-deprecated-count)]]
+              [:li {:key ns}
                [:a {:href (util/path-for routes :search-with-query
-                                         (assoc route-params :query (str item "/")))}
-                item
-                (when-not (contains? types :schema)
-                  [:span.tag.is-small (util/kw->label (first types))])]])]])]])))
+                                         (assoc route-params :query (str ns "/")))}
+                ns
+                (when (pos? (dec count))
+                  [:span.tag.is-small count])]])]])]])))
 
 (rum/defc result-list [routes route-params results]
   [:div
@@ -97,7 +101,8 @@
    (for [[namespace ident-entities] (->> results
                                          (group-by (comp namespace :db/ident))
                                          (sort-by first))
-         :let                       [namespace-label (when (nil? namespace) "(no namespace)")]]
+         :let                       [namespace-label (when (nil? namespace)
+                                                       "(no namespace)")]]
      [:div {:key (or namespace namespace-label)}
       [:h3.subtitle (if namespace (str ":" namespace) namespace-label)]
       [:ul.attr-list
@@ -133,8 +138,8 @@
         (let [namespaces (namespace-list-from-idents db)]
           (list
            (rum/with-key (namespace-list routes route-params
-                                         (remove second namespaces) :active)
+                                         (remove :all-deprecated? namespaces) :active)
              :active)
            (rum/with-key (namespace-list routes route-params
-                                         (filter second namespaces) :deprecated)
+                                         (filter :all-deprecated? namespaces) :deprecated)
              :deprecated))))]]))

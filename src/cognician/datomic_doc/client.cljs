@@ -7,10 +7,10 @@
             [cognician.datomic-doc.client.start :as start]))
 
 (def component-type->fn
-  {"database-list" database-list
-   "detail" detail
+  {"database-list"  database-list
+   "detail"         detail
    "editor-buttons" editor-buttons
-   "search" search})
+   "search"         search})
 
 (defn start-client! []
   (start/start-all-components! common/state component-type->fn))

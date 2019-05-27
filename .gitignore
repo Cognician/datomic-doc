@@ -1,6 +1,11 @@
 /.cpcache
 /resources/cognician/datomic-doc/js/*.map
 /resources/cognician/datomic-doc/js/*.js
-/resources/cognician/datomic-doc/js/out
-/target
+/resources/cognician/datomic-doc/js/main-dev
+/target/
+
+.lein-deps-sum
+.lein-failures
+.lein-plugins/
+.lein-repl-history
 .nrepl-port

@@ -58,7 +58,7 @@
                   (tx->tx-instant db)))
       (and count-datoms? (contains? #{:schema :enum :entity} lookup-type))
       (assoc :datom-count
-             (-> (seq (d/datoms db index lookup-ref))
+             (-> (d/datoms db index lookup-ref)
                  seq
                  count)))))
 

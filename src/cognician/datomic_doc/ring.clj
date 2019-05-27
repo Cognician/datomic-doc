@@ -95,9 +95,9 @@
      :entity-save-with-ns   save}))
 
 (defn wrap-datomic-doc [handler options]
-  (let [{::dd/keys [uri-prefix multiple-databases?]
-         :as options} (options/prepare-options options)
-        routes     (routes/make-routes uri-prefix multiple-databases?)
+  (let [options    (options/prepare-options options)
+        uri-prefix (::dd/uri-prefix options)
+        routes     (routes/make-routes uri-prefix (::dd/multiple-databases? options))
         dd-handler (->> (make-route-handlers options)
                         (bidi-ring/make-handler routes)
                         (wrap-with-options+routes options routes))

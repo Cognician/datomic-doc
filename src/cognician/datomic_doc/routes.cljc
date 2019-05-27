@@ -5,7 +5,7 @@
   {""
    {:get :search}
 
-   ["/search/" [#"[A-Za-z-/.0-9]+" :query]]
+   ["/search/" [#"[A-Za-z-/\.\d]+" :query]]
    {:get :search-with-query}
 
    ["/" [#"ident" :lookup-type] "/" :name]
